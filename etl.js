@@ -62,11 +62,9 @@ function cardToIssueBody(card) {
     })
     .join("\n");
 
-  return {
-    body: [`Imported from <${card.url}>.`, `> ${card.desc}`, checklists].join(
-      "\n\n"
-    ),
-  };
+  return [`Imported from <${card.url}>.`, `> ${card.desc}`, checklists].join(
+    "\n\n"
+  );
 }
 
 function checklistItemToIssue(item) {
@@ -122,14 +120,6 @@ async function upsertCard(card) {
     fullIssue.__migration = M_CREATED;
   }
 
-  if (card.closed && "closed" !== fullIssue.state) {
-    changed = true;
-    let m = fullIssue.__migration;
-    fullIssue = await gh.issues.update(fullIssue.number, { state: "closed" });
-    fullIssue.__migration = m;
-    store.set(`card:${card.id}`, fullIssue);
-  }
-
   await card.checklists.reduce(async function (promise, checklist) {
     await promise;
     await upsertChecklist(checklist);
@@ -137,7 +127,13 @@ async function upsertCard(card) {
 
   if (fullIssue.__migration < M_LISTS) {
     changed = true;
-    fullIssue = await gh.issues.update(fullIssue.number, cardToIssueBody(card));
+    let updates = {
+      body: cardToIssueBody(card),
+    };
+    if (card.closed && "closed" !== fullIssue.state) {
+      updates.state = "closed";
+    }
+    fullIssue = await gh.issues.update(fullIssue.number, updates);
     fullIssue.__migration = M_LISTS;
     store.set(`card:${card.id}`, fullIssue);
   }
