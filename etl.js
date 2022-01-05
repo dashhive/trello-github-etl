@@ -1,8 +1,8 @@
 "use strict";
 
 const M_CREATED = 0;
-const M_LISTS = 1;
-//const M_COMMENTS = 2;
+const M_LISTS = 1; // oops, skipped 1 (literally)
+//const M_COMMENTS = 4;
 const SLEEP = 3000;
 
 let Storage = require("dom-storage");
@@ -11,9 +11,6 @@ let JsonStorage = require("json-storage").JsonStorage;
 let store = JsonStorage.create(localStorage, "trello-gh-projects", {
   stringify: true,
 });
-
-store.getItem = store.get;
-store.setItem = store.set;
 
 let gh = require("./lib/gh.js");
 let board = require("./board.json");
@@ -29,12 +26,42 @@ function cardToIssue(card) {
   return {
     title: card.name,
     body: `Imported from <${card.url}>.
+
 > ${card.desc}`,
     assignees: card.idMembers
       .map(function (id) {
         return members[id];
       })
       .filter(Boolean),
+  };
+}
+
+// sorry not sorry
+function cardToIssueBody(card) {
+  let checklists = card.checklists
+    .map(function (checklist) {
+      let tasks = checklist.checkItems
+        .map(function (item) {
+          let issue = store.get(`checkItem:${item.id}`);
+          let x = " ";
+          if ("closed" === issue.state) {
+            x = "x";
+          }
+          return `- [${x}] #${issue.number}`;
+        })
+        .join("\n");
+      if (tasks) {
+        tasks += "\n";
+      }
+      // TODO checklist.name should be a label (Concept, In-Progress, Prod)
+      return [`${checklist.name}\n`, tasks].join("\n");
+    })
+    .join("\n");
+
+  return {
+    body: [`Imported from <${card.url}>.`, `> ${card.desc}`, checklists].join(
+      "\n\n"
+    ),
   };
 }
 
@@ -51,7 +78,7 @@ function checklistItemToIssue(item) {
 }
 
 async function upsertChecklistItem(item) {
-  console.info("    [Task]", item.name);
+  console.info("    [Task]", item.name, item.id);
   let changed = false;
   let fullIssue = store.get(`checkItem:${item.id}`);
   let issue = checklistItemToIssue(item);
@@ -59,18 +86,21 @@ async function upsertChecklistItem(item) {
   if (!fullIssue) {
     changed = true;
     fullIssue = await gh.issues.create(issue);
-    fullIssue.__migration = M_CREATED;
     store.set(`checkItem:${item.id}`, fullIssue);
+  }
+  if (!fullIssue.__migration) {
+    fullIssue.__migration = M_CREATED;
   }
 
   if ("complete" === item.state && "closed" !== fullIssue.state) {
     changed = true;
+    let m = fullIssue.__migration;
     fullIssue = await gh.issues.update(fullIssue.number, { state: "closed" });
+    fullIssue.__migration = m;
     store.set(`checkItem:${item.id}`, fullIssue);
   }
 
-  //"state": "complete",
-  return {};
+  return changed;
 }
 
 async function upsertCard(card) {
@@ -82,13 +112,17 @@ async function upsertCard(card) {
   if (!fullIssue) {
     changed = true;
     fullIssue = await gh.issues.create(issue);
-    fullIssue.__migration = M_CREATED;
     store.set(`card:${card.id}`, fullIssue);
+  }
+  if (!fullIssue.__migration) {
+    fullIssue.__migration = M_CREATED;
   }
 
   if (card.closed && "closed" !== fullIssue.state) {
     changed = true;
+    let m = fullIssue.__migration;
     fullIssue = await gh.issues.update(fullIssue.number, { state: "closed" });
+    fullIssue.__migration = m;
     store.set(`card:${card.id}`, fullIssue);
   }
 
@@ -97,15 +131,14 @@ async function upsertCard(card) {
     await upsertChecklist(checklist);
   }, Promise.resolve());
 
-  // TODO build extended description from checklist
   if (fullIssue.__migration < M_LISTS) {
-    //changed = true;
-    //fullIssue = await gh.issues.update(fullIssue.number, issue);
-    //store.set(`card:${card.id}`, fullIssue);
-    //console.log(fullIssue);
-    //console.log(card);
-    //console.log("TODO: add lists");
+    changed = true;
+    fullIssue = await gh.issues.update(fullIssue.number, cardToIssueBody(card));
+    fullIssue.__migration = M_LISTS;
+    store.set(`card:${card.id}`, fullIssue);
   }
+
+  return changed;
 }
 
 async function upsertChecklist(checklist) {
@@ -126,18 +159,20 @@ async function sleep(delay) {
 }
 
 async function main() {
-  console.log("");
-
-  console.log("###", board.cards[0].checklists[0].checkItems[0].name);
+  console.info("");
+  console.info("###", board.cards[0].checklists[0].checkItems[0].name);
   await upsertChecklistItem(board.cards[0].checklists[0].checkItems[0]);
 
-  console.log("##", board.cards[0].checklists[0].name);
+  console.info("");
+  console.info("##", board.cards[0].checklists[0].name);
   await upsertChecklist(board.cards[0].checklists[0]);
 
-  console.log("#", board.cards[0].name);
+  console.info("");
+  console.info("#", board.cards[0].name);
   await upsertCard(board.cards[0]);
 
-  console.log("");
+  //console.info("");
+  //console.info(cardToIssueBody(board.cards[0]).body);
   return;
   board.cards.reduce(async function (promise, card) {
     await promise;
