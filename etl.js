@@ -53,8 +53,12 @@ function cardToIssueBody(card) {
       if (tasks) {
         tasks += "\n";
       }
-      // TODO checklist.name should be a label (Concept, In-Progress, Prod)
-      return [`${checklist.name}\n`, tasks].join("\n");
+      // TODO checklist.name should be a label
+      //   - Concept
+      //   - Specification
+      //   - Production
+      //   - QA
+      return [`## ${checklist.name}\n`, tasks].join("\n");
     })
     .join("\n");
 
@@ -173,7 +177,6 @@ async function main() {
 
   //console.info("");
   //console.info(cardToIssueBody(board.cards[0]).body);
-  return;
   board.cards.reduce(async function (promise, card) {
     await promise;
     let changed = await upsertCard(card);
