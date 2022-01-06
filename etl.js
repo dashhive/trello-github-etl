@@ -155,6 +155,17 @@ async function upsertChecklistItem(item) {
     fullIssue.__migration = M_CREATED;
   }
 
+  if (issue.title !== fullIssue.title) {
+    changed = true;
+    let m = fullIssue.__migration;
+    fullIssue = await gh.issues.update(fullIssue.number, {
+      title: issue.title,
+      body: issue.body,
+    });
+    fullIssue.__migration = m;
+    store.set(`checkItem:${item.id}`, fullIssue);
+  }
+
   if ("complete" === item.state && "closed" !== fullIssue.state) {
     changed = true;
     let m = fullIssue.__migration;
