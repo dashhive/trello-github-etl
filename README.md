@@ -30,3 +30,10 @@ GH.projects.getCustomFields();
 GH.projects.add(issueOrPrNodeId);
 GH.projects.setDashAmount(projectItemId, amount);
 ```
+
+# Resources
+
+- GitHub's REST API for Issues: https://docs.github.com/en/rest/reference/issues
+- GitHub's GraphQL API for "Memexes" (Project Beta): \
+  https://docs.github.com/en/issues/trying-out-the-new-projects-experience/using-the-api-to-manage-projects#adding-an-item-to-a-project
+- How to GraphQL: https://graphql.org/learn/queries/
