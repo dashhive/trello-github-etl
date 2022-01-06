@@ -17,3 +17,14 @@ vim .env
 
 node etl.js
 ```
+
+# API
+
+```js
+let GH = require("./lib/gh.js");
+
+GH.issues.create({ title, body, assignments });
+GH.issues.update(number, { title, body, assignments, state });
+
+GH.projects.add(issueOrPrNodeId);
+```
