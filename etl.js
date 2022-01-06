@@ -67,10 +67,26 @@ function cardToIssueBody(card) {
   );
 }
 
-function checklistItemToIssue(item) {
+function checklistItemToIssue(item /*, labels*/) {
+  let task = item.name.trim();
+  let body = "";
+
+  // See tests/dash-parser-re.js for matching pattern
+  // (generally it's something like '(1.0 Dash)', with * spaces)
+  let dashRe = /(\s+\(\s*((\d+)?(\.\d+)?)\s*\Dash\s*\)\s*)/i;
+  let m = task.match(dashRe);
+  if (m) {
+    let whole = m[1];
+    let money = m[2];
+
+    task = task.replace(whole, "").trim();
+    // TODO add to custom field
+    body = `Bounty: ${money} Dash`;
+  }
+
   return {
-    title: item.name,
-    body: "",
+    title: task,
+    body: body,
     assignees: [item.idMember]
       .map(function (id) {
         return members[id];
@@ -84,6 +100,8 @@ async function upsertChecklistItem(item) {
   let changed = false;
   let fullIssue = store.get(`checkItem:${item.id}`);
   let issue = checklistItemToIssue(item);
+
+  console.info(`    [Task.body] ${issue.body}`);
 
   if (!fullIssue) {
     changed = true;
