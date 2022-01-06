@@ -91,7 +91,7 @@ async function upsertChecklistItem(item) {
   // "  2)  do that" => 2
   // "b 3) do that" => ❌
   // "4)do other" => ❌
-  let indexRe = /^\s*(\d\))\s+/i;
+  let indexRe = /^\s*(\d+\))\s+/i;
   let m = item.name.match(indexRe);
   if (m) {
     item.name = item.name.replace(m[0], "").trim();
