@@ -26,5 +26,7 @@ let GH = require("./lib/gh.js");
 GH.issues.create({ title, body, assignments });
 GH.issues.update(number, { title, body, assignments, state });
 
+GH.projects.getCustomFields();
 GH.projects.add(issueOrPrNodeId);
+GH.projects.setDashAmount(projectItemId, amount);
 ```
