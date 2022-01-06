@@ -68,25 +68,16 @@ function cardToIssueBody(card) {
 }
 
 function checklistItemToIssue(item /*, labels*/) {
-  let task = item.name.trim();
-  let body = "";
-
-  // See tests/dash-parser-re.js for matching pattern
-  // (generally it's something like '(1.0 Dash)', with * spaces)
-  let dashRe = /(\s+\(\s*((\d+)?(\.\d+)?)\s*\Dash\s*\)\s*)/i;
-  let m = task.match(dashRe);
-  if (m) {
-    let whole = m[1];
-    let money = m[2];
-
-    task = task.replace(whole, "").trim();
-    // TODO add to custom field
-    body = `Bounty: ${money} Dash`;
+  if (item._amount) {
+    if (item._desc) {
+      item._desc += "\n\n";
+    }
+    item._desc += `Bounty: ${item._amount} Dash`;
   }
 
   return {
-    title: task,
-    body: body,
+    title: item._title,
+    body: item._desc,
     assignees: [item.idMember]
       .map(function (id) {
         return members[id];
@@ -96,11 +87,57 @@ function checklistItemToIssue(item /*, labels*/) {
 }
 
 async function upsertChecklistItem(item) {
-  console.info("    [Task]", item.name, item.id);
+  // nix number prefix
+  // "1) do this" => 1
+  // "  2)  do that" => 2
+  // "b 3) do that" => ❌
+  // "4)do other" => ❌
+  let indexRe = /^\s*(\d\))\s+/i;
+  let m = item.name.match(indexRe);
+  if (m) {
+    item.name = item.name.replace(m[0], "").trim();
+    // TODO save m[1] as metadata
+  }
+
+  // capture bounty amount
+  // See tests/dash-parser-re.js for matching pattern
+  // (generally it's something like '(1.0 Dash)', with * spaces)
+  // ex: 'Some task (1 DASH)' = > '1'
+  let dashRe = /\s+\(\s*((\d+)?(\.\d+)?)\s*\Dash\s*\)\s*/i;
+  m = item.name.match(dashRe);
+  if (m) {
+    let whole = m[0];
+    let amount = m[1];
+
+    item.name = item.name.replace(whole, "").trim();
+    // TODO add to custom field
+    item._amount = amount;
+  }
+
+  // make 50 chars title and the rest body
+  let words = item.name.split(/\s/);
+  item._title = "";
+  item._desc = "";
+  words.forEach(function (w, i) {
+    if (item._desc) {
+      item._desc += `${w} `;
+      return;
+    }
+
+    if (item._title.length < 50) {
+      item._title += `${w} `;
+      return;
+    }
+
+    item._title = item._title.trim() + "...";
+    item._desc += `${w} `;
+  });
+  item._desc = item._desc.trim();
+
+  console.info(`    [Task ${item.id}]`, JSON.stringify(item._title, null, 2));
   let changed = false;
   let fullIssue = store.get(`checkItem:${item.id}`);
   let issue = checklistItemToIssue(item);
-
   console.info(`    [Task.body] ${issue.body}`);
 
   if (!fullIssue) {
