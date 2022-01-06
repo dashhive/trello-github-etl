@@ -1,7 +1,7 @@
 "use strict";
 
 const M_CREATED = 0;
-const M_LISTS = 1; // oops, skipped 1 (literally)
+const M_LISTS = 1;
 //const M_COMMENTS = 4;
 const SLEEP = 3000;
 
@@ -68,13 +68,6 @@ function cardToIssueBody(card) {
 }
 
 function checklistItemToIssue(item /*, labels*/) {
-  if (item._amount) {
-    if (item._desc) {
-      item._desc += "\n\n";
-    }
-    item._desc += `Bounty: ${item._amount} Dash`;
-  }
-
   return {
     title: item._title,
     body: item._desc,
@@ -87,6 +80,12 @@ function checklistItemToIssue(item /*, labels*/) {
 }
 
 async function upsertChecklistItem(item) {
+  // TODO: make optional
+  if ("complete" === item.state) {
+    // don't import completed items
+    return;
+  }
+
   // nix number prefix
   // "1) do this" => 1
   // "  2)  do that" => 2
@@ -134,6 +133,13 @@ async function upsertChecklistItem(item) {
   });
   item._desc = item._desc.trim();
 
+  if (item._amount) {
+    if (item._desc) {
+      item._desc += "\n\n";
+    }
+    item._desc += `Bounty: ${item._amount} Dash`;
+  }
+
   console.info(`    [Task ${item.id}]`, JSON.stringify(item._title, null, 2));
   let changed = false;
   let fullIssue = store.get(`checkItem:${item.id}`);
@@ -157,10 +163,34 @@ async function upsertChecklistItem(item) {
     store.set(`checkItem:${item.id}`, fullIssue);
   }
 
+  let meta = store.get(`checkItem:${item.id}:project`);
+  if (!meta) {
+    let projectItemNodeId = await gh.projects.add(fullIssue.node_id);
+    meta = {
+      issueNodeId: fullIssue.node_id,
+      projectItemNodeId: projectItemNodeId,
+    };
+    store.set(`checkItem:${item.id}:project`, meta);
+    await sleep(SLEEP);
+  }
+
+  if (item._amount && !meta.amount) {
+    await gh.projects.setDashAmount(meta.projectItemNodeId, item._amount);
+    meta.amount = item._amount;
+    store.set(`checkItem:${item.id}:project`, meta);
+    await sleep(SLEEP);
+  }
+
   return changed;
 }
 
 async function upsertCard(card) {
+  // TODO: make optional
+  if (card.closed) {
+    // don't import completed items
+    return;
+  }
+
   console.info("[Bounty]", card.name);
   let changed = false;
   let fullIssue = store.get(`card:${card.id}`);
