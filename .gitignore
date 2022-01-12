@@ -1,5 +1,6 @@
 *.json
 *.csv
+!package*.json
 
 # Logs
 logs
