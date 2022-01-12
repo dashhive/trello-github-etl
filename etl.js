@@ -5,6 +5,12 @@ const M_LISTS = 1;
 //const M_COMMENTS = 4;
 const SLEEP = 3000;
 
+// 'checkItem' is a misnomer. Pretend it was called 'ghIssue'.
+const ISSUE_TO_ITEM = "checkItem";
+const ISSUE_TO_CARD = "card";
+
+let Etl = module.exports;
+
 let Storage = require("dom-storage");
 let localStorage = new Storage("./db.json", { strict: true, ws: "  " });
 let JsonStorage = require("json-storage").JsonStorage;
@@ -14,104 +20,8 @@ let store = JsonStorage.create(localStorage, "trello-gh-projects", {
 
 let Transform = require("./lib/transform.js");
 let gh = require("./lib/gh.js");
-let board = require("./board.json");
 
-// sorry not sorry
-function cardToIssueBody(card) {
-  let checklists = card.checklists
-    .map(function (checklist) {
-      let tasks = checklist.checkItems
-        .map(function (item) {
-          let issue = store.get(`checkItem:${item.id}`);
-          let x = " ";
-          if ("closed" === issue.state) {
-            x = "x";
-          }
-          return `- [${x}] #${issue.number}`;
-        })
-        .join("\n");
-      if (tasks) {
-        tasks += "\n";
-      }
-      // TODO checklist.name should be a label
-      //   - Concept
-      //   - Specification
-      //   - Production
-      //   - QA
-      return [`## ${checklist.name}\n`, tasks].join("\n");
-    })
-    .join("\n");
-
-  return [`Imported from <${card.url}>.`, `> ${card.desc}`, checklists].join(
-    "\n\n"
-  );
-}
-
-async function upsertChecklistItem(item) {
-  // TODO: make optional
-  if ("complete" === item.state) {
-    // don't import completed items
-    return;
-  }
-
-  item = Transform.parseChecklistItem(item);
-
-  console.info(`    [Task ${item.id}]`, JSON.stringify(item._title, null, 2));
-  let changed = false;
-  let fullIssue = store.get(`checkItem:${item.id}`);
-  let issue = Transform.mapChecklistItemToIssue(item);
-  console.info(`    [Task.body] ${issue.body}`);
-
-  if (!fullIssue) {
-    changed = true;
-    fullIssue = await gh.issues.create(issue);
-    store.set(`checkItem:${item.id}`, fullIssue);
-  }
-  if (!fullIssue.__migration) {
-    fullIssue.__migration = M_CREATED;
-  }
-
-  if (issue.title !== fullIssue.title) {
-    changed = true;
-    let m = fullIssue.__migration;
-    fullIssue = await gh.issues.update(fullIssue.number, {
-      title: issue.title,
-      body: issue.body,
-    });
-    fullIssue.__migration = m;
-    store.set(`checkItem:${item.id}`, fullIssue);
-  }
-
-  if ("complete" === item.state && "closed" !== fullIssue.state) {
-    changed = true;
-    let m = fullIssue.__migration;
-    fullIssue = await gh.issues.update(fullIssue.number, { state: "closed" });
-    fullIssue.__migration = m;
-    store.set(`checkItem:${item.id}`, fullIssue);
-  }
-
-  let meta = store.get(`checkItem:${item.id}:project`);
-  if (!meta) {
-    let projectItemNodeId = await gh.projects.add(fullIssue.node_id);
-    meta = {
-      issueNodeId: fullIssue.node_id,
-      projectItemNodeId: projectItemNodeId,
-    };
-    store.set(`checkItem:${item.id}:project`, meta);
-    await sleep(SLEEP);
-  }
-
-  if (item._amount && !meta.amount) {
-    await gh.projects.setDashAmount(meta.projectItemNodeId, item._amount);
-    meta.amount = item._amount;
-    store.set(`checkItem:${item.id}:project`, meta);
-    await sleep(SLEEP);
-  }
-
-  return changed;
-}
-
-async function upsertCard(card) {
+Etl.upsertCard = async function _upsertCard(card) {
   // TODO: make optional
   if (card.closed) {
     // don't import completed items
@@ -120,49 +30,140 @@ async function upsertCard(card) {
 
   console.info("[Bounty]", card.name);
   let changed = false;
-  let fullIssue = store.get(`card:${card.id}`);
+  let fullIssue = store.get(`${ISSUE_TO_CARD}:${card.id}`);
+  let cardMeta = store.get(`meta:card:${card.id}`) || {
+    // left for backwards compat with anyone who happened to run this
+    // before I changed it (probably just me)
+    migration: fullIssue.__migration,
+  };
+  store.set(`meta:card:${card.id}`, cardMeta);
   let issue = Transform.mapCardToIssue(card);
 
   if (!fullIssue) {
     changed = true;
     fullIssue = await gh.issues.create(issue);
-    store.set(`card:${card.id}`, fullIssue);
+    store.set(`${ISSUE_TO_CARD}:${card.id}`, fullIssue);
   }
-  if (!fullIssue.__migration) {
-    fullIssue.__migration = M_CREATED;
+  if (!cardMeta.migration) {
+    cardMeta.migration = M_CREATED;
+    store.set(`meta:card:${card.id}`, cardMeta);
   }
 
   await card.checklists.reduce(async function (promise, checklist) {
     await promise;
-    await upsertChecklist(checklist);
+    await Etl.upsertChecklist(checklist);
   }, Promise.resolve());
 
-  if (fullIssue.__migration < M_LISTS) {
+  card = addIssuesToCardChecklistItems(card);
+  if (cardMeta.migration < M_LISTS) {
     changed = true;
     let updates = {
-      body: cardToIssueBody(card),
+      body: Transform.mapCardToIssueMkdn(card),
     };
     if (card.closed && "closed" !== fullIssue.state) {
       updates.state = "closed";
     }
     fullIssue = await gh.issues.update(fullIssue.number, updates);
-    fullIssue.__migration = M_LISTS;
-    store.set(`card:${card.id}`, fullIssue);
+    cardMeta.migration = M_LISTS;
+    store.set(`meta:card:${card.id}`, cardMeta);
+    store.set(`${ISSUE_TO_CARD}:${card.id}`, fullIssue);
   }
 
   return changed;
+};
+
+Etl.upsertChecklistItem = async function _upsertChecklistItem(item) {
+  // TODO: skipping closed items should be optional
+  let closed = "complete" === item.state;
+  if (closed) {
+    // don't import completed items
+    return;
+  }
+
+  item = Transform.parseChecklistItem(item);
+
+  console.info(`    [Task ${item.id}]`, JSON.stringify(item._title, null, 2));
+  let changed = false;
+  let fullIssue = store.get(`${ISSUE_TO_ITEM}:${item.id}`);
+  let itemMeta = store.get(`meta:item:${item.id}`) || {
+    // left for backwards compat with anyone who happened to run this
+    // before I changed it (probably just me)
+    migration: fullIssue.__migration,
+  };
+  let issue = Transform.mapChecklistItemToIssue(item);
+  console.info(`    [Task.body] ${issue.body}`);
+
+  if (!fullIssue) {
+    changed = true;
+    fullIssue = await gh.issues.create(issue);
+    store.set(`${ISSUE_TO_ITEM}:${item.id}`, fullIssue);
+  }
+  if (!itemMeta.migration) {
+    itemMeta.migration = M_CREATED;
+    store.set(`meta:item:${item.id}`, itemMeta);
+  }
+
+  if (issue.title !== fullIssue.title) {
+    changed = true;
+    fullIssue = await gh.issues.update(fullIssue.number, {
+      title: issue.title,
+      body: issue.body,
+    });
+    store.set(`${ISSUE_TO_ITEM}:${item.id}`, fullIssue);
+  }
+
+  let shouldBeClosed = "complete" === item.state;
+  let isClosed = "closed" === fullIssue.state;
+  if (shouldBeClosed && !isClosed) {
+    changed = true;
+    fullIssue = await gh.issues.update(fullIssue.number, { state: "closed" });
+    store.set(`${ISSUE_TO_ITEM}:${item.id}`, fullIssue);
+  }
+
+  let projectMeta = store.get(`${ISSUE_TO_ITEM}:${item.id}:project`);
+  if (!projectMeta) {
+    let projectItemNodeId = await gh.projects.add(fullIssue.node_id);
+    projectMeta = {
+      issueNodeId: fullIssue.node_id,
+      projectItemNodeId: projectItemNodeId,
+    };
+    store.set(`${ISSUE_TO_ITEM}:${item.id}:project`, projectMeta);
+    await sleep(SLEEP);
+  }
+
+  if (item._amount && !projectMeta.amount) {
+    await gh.projects.setDashAmount(
+      projectMeta.projectItemNodeId,
+      item._amount
+    );
+    projectMeta.amount = item._amount;
+    store.set(`${ISSUE_TO_ITEM}:${item.id}:project`, projectMeta);
+    await sleep(SLEEP);
+  }
+
+  return changed;
+};
+
+// Note: modifies original card object
+function addIssuesToCardChecklistItems(card) {
+  card.checklists.forEach(function (checklist) {
+    checklist.checkItems.forEach(function (checkItem) {
+      checkItem._issue = store.get(`${ISSUE_TO_ITEM}:${checkItem.id}`);
+    });
+  });
+  return card;
 }
 
-async function upsertChecklist(checklist) {
+Etl.upsertChecklist = async function _upsertChecklist(checklist) {
   console.info("  [List]", checklist.name);
   await checklist.checkItems.reduce(async function (promise, item) {
     await promise;
-    let changed = await upsertChecklistItem(item);
+    let changed = await Etl.upsertChecklistItem(item);
     if (changed) {
       await sleep(SLEEP);
     }
   }, Promise.resolve());
-}
+};
 
 async function sleep(delay) {
   return await new Promise(function (resolve) {
@@ -170,32 +171,35 @@ async function sleep(delay) {
   });
 }
 
-async function main() {
+async function main(board) {
   console.info("");
   console.info("###", board.cards[0].checklists[0].checkItems[0].name);
-  await upsertChecklistItem(board.cards[0].checklists[0].checkItems[0]);
+  await Etl.upsertChecklistItem(board.cards[0].checklists[0].checkItems[0]);
 
   console.info("");
   console.info("##", board.cards[0].checklists[0].name);
-  await upsertChecklist(board.cards[0].checklists[0]);
+  await Etl.upsertChecklist(board.cards[0].checklists[0]);
 
   console.info("");
   console.info("#", board.cards[0].name);
-  await upsertCard(board.cards[0]);
+  await Etl.upsertCard(board.cards[0]);
 
   //console.info("");
   //console.info(cardToIssueBody(board.cards[0]).body);
   board.cards.reduce(async function (promise, card) {
     await promise;
-    let changed = await upsertCard(card);
+    let changed = await Etl.upsertCard(card);
     if (changed) {
       await sleep(SLEEP);
     }
   }, Promise.resolve());
 }
 
-main().catch(function (err) {
-  console.error("Failed:");
-  console.error(err);
-  process.exit(1);
-});
+if (require.main === module) {
+  let board = require("./board.json");
+  main(board).catch(function (err) {
+    console.error("Failed:");
+    console.error(err);
+    process.exit(1);
+  });
+}

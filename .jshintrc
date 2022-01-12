@@ -19,5 +19,5 @@
   "strict": true,
   "maxdepth": 3,
   "maxstatements": 100,
-  "maxcomplexity": 10
+  "maxcomplexity": 12
 }

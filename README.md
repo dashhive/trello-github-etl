@@ -1,12 +1,16 @@
 # trello-github-etl
 
-In case AJ dies in a bus accident \
-(thankfully AJ doesn't ride buses)
+Export from Trello.
 
-Rion did a zip export from the "Show menu..." menu of
-<https://trello.com/b/FPJzDcok/dash-incubator-app>.
+Transform and Parse.
 
-I called that `board.json`.
+Load to GitHub Issues + Project (Beta).
+
+# QuickStart
+
+If you've done this before, here's the high-level recap.
+
+Otherwise read the **Setup** section.
 
 ```bash
 npm ci --only=production
@@ -15,7 +19,10 @@ rsync -avhP example.env .env
 
 vim .env
 
-node etl.js
+vim board.json
+vim members.json
+
+node ./etl.js
 ```
 
 # Setup
@@ -82,6 +89,28 @@ because there's really no magic to do that for you... :)
 # API
 
 ```js
+// Generic Usage
+let Etl = require("./etl.js");
+let board = require("./board.json");
+
+board.cards.reduce(async function (promise, card) {
+  await promise;
+  let changed = await Etl.upsertCard(card);
+  if (changed) {
+    await sleep(SLEEP);
+  }
+}, Promise.resolve());
+```
+
+```js
+let Etl = require("./etl.js");
+
+Etl.upsertCard(card);
+Etl.upsertChecklist(checklist);
+Etl.upsertChecklistItem(item);
+```
+
+```js
 let GH = require("./lib/gh.js");
 
 GH.issues.create({ title, body, assignments });
@@ -99,6 +128,9 @@ Transform.parseChecklistItem(item);
 
 Transform.mapCardToIssue(card);
 Transform.mapChecklistItemToIssue(item);
+
+// Note: cardWithIssues = addIssuesToCardChecklistItems(card);
+Transform.mapCardToIssueMkdn(cardWithIssues);
 ```
 
 # Resources
