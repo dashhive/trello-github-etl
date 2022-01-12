@@ -27,6 +27,40 @@ node ./etl.js
 
 # Setup
 
+## `.env`
+
+### `GITHUB_TOKEN`
+
+See <https://github.com/settings/tokens>.
+
+### `GITHUB_PROJECT`
+
+The Project Number (used to get the Project Node ID) can be found in the URL of
+the project. For example:
+
+- <https://github.com/orgs/dashtesting/projects/2/views/1>
+
+Here the project number is `2`.
+
+### `GITHUB_DASH_FIELD`
+
+Get the GraphQL field NodeID using the provided util. For example:
+
+```bash
+node utils/get-github-project-fields.js
+```
+
+```txt
+"MDE2OlByb2plY3ROZXh0RmllbGQ5NDA2NjY=": "Labels"
+"MDE2OlByb2plY3ROZXh0RmllbGQ5NTE0NTg=": "Dash"
+"MDE2OlByb2plY3ROZXh0RmllbGQxMDM4NzYy": "Issue Type"
+"MDE2OlByb2plY3ROZXh0RmllbGQxMDM4NzYz": "Trello Type"
+"MDE2OlByb2plY3ROZXh0RmllbGQxMDM4Nzc0": "Task Type"
+"MDE2OlByb2plY3ROZXh0RmllbGQxMDQwNDc4": "Fallback Owner"
+```
+
+Here the Dash Field ID is `MDE2OlByb2plY3ROZXh0RmllbGQ5NTE0NTg=`.
+
 ## `board.json`
 
 You'll need to get this from the relevant Trello board. For example:

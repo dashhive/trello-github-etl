@@ -1,0 +1,23 @@
+#!/usr/bin/env node
+'use strict';
+
+let Etl = require('../');
+
+async function main(board) {
+  board.cards.reduce(async function (promise, card) {
+    await promise;
+    let changed = await Etl.upsertCard(card);
+    if (changed) {
+      await sleep(SLEEP);
+    }
+  }, Promise.resolve());
+}
+
+if (require.main === module) {
+  let board = process.argv[2] || require("../board.json");
+  main(board).catch(function (err) {
+    console.error("Failed:");
+    console.error(err);
+    process.exit(1);
+  });
+}

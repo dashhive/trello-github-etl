@@ -34,7 +34,7 @@ Etl.upsertCard = async function _upsertCard(card) {
   let cardMeta = store.get(`meta:card:${card.id}`) || {
     // left for backwards compat with anyone who happened to run this
     // before I changed it (probably just me)
-    migration: fullIssue.__migration,
+    migration: fullIssue?.__migration,
   };
   store.set(`meta:card:${card.id}`, cardMeta);
   let issue = Transform.mapCardToIssue(card);
@@ -88,7 +88,7 @@ Etl.upsertChecklistItem = async function _upsertChecklistItem(item) {
   let itemMeta = store.get(`meta:item:${item.id}`) || {
     // left for backwards compat with anyone who happened to run this
     // before I changed it (probably just me)
-    migration: fullIssue.__migration,
+    migration: fullIssue?.__migration,
   };
   let issue = Transform.mapChecklistItemToIssue(item);
   console.info(`    [Task.body] ${issue.body}`);

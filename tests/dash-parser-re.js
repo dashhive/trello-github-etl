@@ -1,6 +1,6 @@
 "use strict";
 
-let dashRe = require("../lib/transform.js").dashAmountRe;
+let dashRe = require("../lib/transform.js")._dashAmountRe;
 
 [
   ["Some task (1.0 Dash)", "1.0"],
@@ -15,9 +15,11 @@ let dashRe = require("../lib/transform.js").dashAmountRe;
   let [input, expected] = pair;
   let m = input.match(dashRe);
   if (!m || m[1] !== expected) {
+      console.log(input, expected);
+      console.log(m);
     throw new Error(
       `[${i}: ${input}] expected '${expected}', but got ` +
-        JSON.stringify(m, null, 2)
+        JSON.stringify(m[1], null, 2)
     );
   }
   let output0 = m[1];
