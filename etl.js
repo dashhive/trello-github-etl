@@ -28,7 +28,7 @@ Etl.upsertCard = async function _upsertCard(card) {
     return;
   }
 
-  console.info("[Bounty]", card.name);
+  console.info("[Desc/Bounty]", card.name);
   let changed = false;
   let fullIssue = store.get(`${ISSUE_TO_CARD}:${card.id}`);
   let cardMeta = store.get(`meta:card:${card.id}`) || {
@@ -82,7 +82,10 @@ Etl.upsertChecklistItem = async function _upsertChecklistItem(item) {
 
   item = Transform.parseChecklistItem(item);
 
-  console.info(`    [Task ${item.id}]`, JSON.stringify(item._title, null, 2));
+  console.info(
+    `    [Item/Task ${item.id}]`,
+    JSON.stringify(item._title, null, 2)
+  );
   let changed = false;
   let fullIssue = store.get(`${ISSUE_TO_ITEM}:${item.id}`);
   let itemMeta = store.get(`meta:item:${item.id}`) || {
@@ -98,6 +101,7 @@ Etl.upsertChecklistItem = async function _upsertChecklistItem(item) {
     changed = true;
     fullIssue = await gh.issues.create(issue);
     store.set(`${ISSUE_TO_ITEM}:${item.id}`, fullIssue);
+    item._issue = fullIssue;
   }
   if (!itemMeta.migration) {
     itemMeta.migration = M_CREATED;
@@ -111,6 +115,7 @@ Etl.upsertChecklistItem = async function _upsertChecklistItem(item) {
       body: issue.body,
     });
     store.set(`${ISSUE_TO_ITEM}:${item.id}`, fullIssue);
+    item._issue = fullIssue;
   }
 
   let shouldBeClosed = "complete" === item.state;
@@ -119,6 +124,7 @@ Etl.upsertChecklistItem = async function _upsertChecklistItem(item) {
     changed = true;
     fullIssue = await gh.issues.update(fullIssue.number, { state: "closed" });
     store.set(`${ISSUE_TO_ITEM}:${item.id}`, fullIssue);
+    item._issue = fullIssue;
   }
 
   let projectMeta = store.get(`${ISSUE_TO_ITEM}:${item.id}:project`);
@@ -156,7 +162,7 @@ function addIssuesToCardChecklistItems(card) {
 }
 
 Etl.upsertChecklist = async function _upsertChecklist(checklist) {
-  console.info("  [List]", checklist.name);
+  console.info("  [Checklist]", checklist.name);
   await checklist.checkItems.reduce(async function (promise, item) {
     await promise;
     let changed = await Etl.upsertChecklistItem(item);
@@ -173,17 +179,49 @@ async function sleep(delay) {
 }
 
 async function main(board) {
-  console.info("");
-  console.info("###", board.cards[0].checklists[0].checkItems[0].name);
-  await Etl.upsertChecklistItem(board.cards[0].checklists[0].checkItems[0]);
+  /// begin transform
+  // transform between the old trello board.json and the new
+  let cardsMap = {};
+
+  board.cards.forEach(function (card) {
+    cardsMap[card.id] = card;
+    // the new format doesn't have checklists
+    if (!card.checklists) {
+      card.checklists = [];
+      card._newChecklists = true;
+    }
+  });
+
+  if (board.checklists) {
+    board.checklists.forEach(function (checklist) {
+      let card = cardsMap[checklist.idCard];
+      if (card._newChecklists) {
+        card.checklists.push(checklist);
+      }
+    });
+  }
+
+  board.cards.forEach(function (card) {
+    // sort checklists by Trello sort order
+    card.checklists.sort(function (a, b) {
+      return a.pos - b.pos;
+    });
+  });
+
+  cardsMap = null;
+  /// end transform
 
   console.info("");
-  console.info("##", board.cards[0].checklists[0].name);
-  await Etl.upsertChecklist(board.cards[0].checklists[0]);
+  console.info("###", board.cards[12].checklists[0].checkItems[0].name);
+  await Etl.upsertChecklistItem(board.cards[12].checklists[0].checkItems[0]);
 
   console.info("");
-  console.info("#", board.cards[0].name);
-  await Etl.upsertCard(board.cards[0]);
+  console.info("##", board.cards[12].checklists[0].name);
+  await Etl.upsertChecklist(board.cards[12].checklists[0]);
+
+  console.info("");
+  console.info("#", board.cards[12].name);
+  await Etl.upsertCard(board.cards[12]);
 
   //console.info("");
   //console.info(cardToIssueBody(board.cards[0]).body);
