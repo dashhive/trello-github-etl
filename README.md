@@ -14,6 +14,11 @@ Load to GitHub Issues + Project (Beta).
 
 - <https://youtu.be/7GbBRw1JA2Q?t=15464>
 
+Original Q&A Walkthrough
+[3:20:25 - 3:50:05](https://youtu.be/7GbBRw1JA2Q?t=12025)
+
+- <https://youtu.be/7GbBRw1JA2Q?t=12025>
+
 # QuickStart
 
 If you've done this before, here's the high-level recap.
