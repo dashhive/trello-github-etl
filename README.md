@@ -92,6 +92,15 @@ GH.projects.add(issueOrPrNodeId);
 GH.projects.setDashAmount(projectItemId, amount);
 ```
 
+```js
+let Transform = require("./lib/transform.js");
+
+Transform.parseChecklistItem(item);
+
+Transform.mapCardToIssue(card);
+Transform.mapChecklistItemToIssue(item);
+```
+
 # Resources
 
 - GitHub's REST API for Issues: https://docs.github.com/en/rest/reference/issues

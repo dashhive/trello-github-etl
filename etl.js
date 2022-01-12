@@ -12,23 +12,9 @@ let store = JsonStorage.create(localStorage, "trello-gh-projects", {
   stringify: true,
 });
 
+let Transform = require("./lib/transform.js");
 let gh = require("./lib/gh.js");
 let board = require("./board.json");
-let members = require("./members.json");
-
-function cardToIssue(card) {
-  return {
-    title: card.name,
-    body: `Imported from <${card.url}>.
-
-> ${card.desc}`,
-    assignees: card.idMembers
-      .map(function (id) {
-        return members[id];
-      })
-      .filter(Boolean),
-  };
-}
 
 // sorry not sorry
 function cardToIssueBody(card) {
@@ -61,18 +47,6 @@ function cardToIssueBody(card) {
   );
 }
 
-function checklistItemToIssue(item /*, labels*/) {
-  return {
-    title: item._title,
-    body: item._desc,
-    assignees: [item.idMember]
-      .map(function (id) {
-        return members[id];
-      })
-      .filter(Boolean),
-  };
-}
-
 async function upsertChecklistItem(item) {
   // TODO: make optional
   if ("complete" === item.state) {
@@ -80,64 +54,12 @@ async function upsertChecklistItem(item) {
     return;
   }
 
-  // nix number prefix
-  // "1) do this" => 1
-  // "  2)  do that" => 2
-  // "b 3) do that" => ❌
-  // "4)do other" => ❌
-  let indexRe = /^\s*(\d+\))\s+/i;
-  let m = item.name.match(indexRe);
-  if (m) {
-    item.name = item.name.replace(m[0], "").trim();
-    // TODO save m[1] as metadata
-  }
-
-  // capture bounty amount
-  // See tests/dash-parser-re.js for matching pattern
-  // (generally it's something like '(1.0 Dash)', with * spaces)
-  // ex: 'Some task (1 DASH)' = > '1'
-  let dashRe = /\s+\(\s*((\d+)?(\.\d+)?)\s*\Dash\s*\)\s*/i;
-  m = item.name.match(dashRe);
-  if (m) {
-    let whole = m[0];
-    let amount = m[1];
-
-    item.name = item.name.replace(whole, "").trim();
-    // TODO add to custom field
-    item._amount = amount;
-  }
-
-  // make 50 chars title and the rest body
-  let words = item.name.split(/\s/);
-  item._title = "";
-  item._desc = "";
-  words.forEach(function (w, i) {
-    if (item._desc) {
-      item._desc += `${w} `;
-      return;
-    }
-
-    if (item._title.length < 50) {
-      item._title += `${w} `;
-      return;
-    }
-
-    item._title = item._title.trim() + "...";
-    item._desc += `${w} `;
-  });
-  item._desc = item._desc.trim();
-
-  if (item._amount) {
-    if (item._desc) {
-      item._desc += "\n\n";
-    }
-    item._desc += `Bounty: ${item._amount} Dash`;
-  }
+  item = Transform.parseChecklistItem(item);
 
   console.info(`    [Task ${item.id}]`, JSON.stringify(item._title, null, 2));
   let changed = false;
   let fullIssue = store.get(`checkItem:${item.id}`);
-  let issue = checklistItemToIssue(item);
+  let issue = Transform.mapChecklistItemToIssue(item);
   console.info(`    [Task.body] ${issue.body}`);
 
   if (!fullIssue) {
@@ -199,7 +121,7 @@ async function upsertCard(card) {
   console.info("[Bounty]", card.name);
   let changed = false;
   let fullIssue = store.get(`card:${card.id}`);
-  let issue = cardToIssue(card);
+  let issue = Transform.mapCardToIssue(card);
 
   if (!fullIssue) {
     changed = true;
