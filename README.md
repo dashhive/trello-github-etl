@@ -60,7 +60,9 @@ node ./etl.js
 
 ### `GITHUB_TOKEN`
 
-See <https://github.com/settings/tokens>.
+See <https://github.com/settings/tokens>. \
+The permissions that need to be checked for the token can be found at the top of
+the .env file
 
 ### `GITHUB_PROJECT`
 
