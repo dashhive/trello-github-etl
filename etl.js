@@ -54,9 +54,9 @@ Etl.upsertCard = async function _upsertCard(card) {
     await Etl.upsertChecklist(checklist);
   }, Promise.resolve());
 
-  card = addIssuesToCardChecklistItems(card);
   if (cardMeta.migration < M_LISTS) {
     changed = true;
+    card = addIssuesToCardChecklistItems(card);
     let updates = {
       body: Transform.mapCardToIssueMkdn(card),
     };
@@ -64,9 +64,9 @@ Etl.upsertCard = async function _upsertCard(card) {
       updates.state = "closed";
     }
     fullIssue = await gh.issues.update(fullIssue.number, updates);
+    store.set(`${ISSUE_TO_CARD}:${card.id}`, fullIssue);
     cardMeta.migration = M_LISTS;
     store.set(`meta:card:${card.id}`, cardMeta);
-    store.set(`${ISSUE_TO_CARD}:${card.id}`, fullIssue);
   }
 
   return changed;
@@ -88,6 +88,7 @@ Etl.upsertChecklistItem = async function _upsertChecklistItem(item) {
   );
   let changed = false;
   let fullIssue = store.get(`${ISSUE_TO_ITEM}:${item.id}`);
+  item._issue = fullIssue;
   let itemMeta = store.get(`meta:item:${item.id}`) || {
     // left for backwards compat with anyone who happened to run this
     // before I changed it (probably just me)
@@ -155,7 +156,10 @@ Etl.upsertChecklistItem = async function _upsertChecklistItem(item) {
 function addIssuesToCardChecklistItems(card) {
   card.checklists.forEach(function (checklist) {
     checklist.checkItems.forEach(function (checkItem) {
-      checkItem._issue = store.get(`${ISSUE_TO_ITEM}:${checkItem.id}`);
+      let fullIssue = store.get(`${ISSUE_TO_ITEM}:${checkItem.id}`);
+      if (fullIssue) {
+        checkItem._issue = fullIssue;
+      }
     });
   });
   return card;
