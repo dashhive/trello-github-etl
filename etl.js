@@ -90,6 +90,7 @@ Etl.upsertChecklistItem = async function _upsertChecklistItem(item) {
     // before I changed it (probably just me)
     migration: fullIssue?.__migration,
   };
+  store.set(`meta:item:${item.id}`, itemMeta);
   let issue = Transform.mapChecklistItemToIssue(item);
   console.info(`    [Task.body] ${issue.body}`);
 
