@@ -12,16 +12,32 @@ If you've done this before, here's the high-level recap.
 
 Otherwise read the **Setup** section.
 
+You'll need
+
+- a **GitHub Personal Access Token**: <https://github.com/settings/tokens>
+- Node.js: https://webinstall.dev/node
+
+```bash
+git clone https://github.com/dashtesting/trello-github-etl
+pushd ./trello-github-etl/
+```
+
 ```bash
 npm ci --only=production
+```
 
+```bash
 rsync -avhP example.env .env
 
 vim .env
+```
 
+```bash
 vim board.json
 vim members.json
+```
 
+```bash
 node ./etl.js
 ```
 
