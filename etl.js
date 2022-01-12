@@ -14,13 +14,7 @@ let store = JsonStorage.create(localStorage, "trello-gh-projects", {
 
 let gh = require("./lib/gh.js");
 let board = require("./board.json");
-let members = {
-  "57e58ebcdb59d360ac33b82f": "riongull",
-  //"60470c6bea10f5041bd1973f": "SamKirby22",
-  //"5e36a8092dc8cf28e1bf5a04": "cloudwheels",
-  //"59ceb948feac14253a312881": "spectaprod",
-  "51ba022b569488283d000181": "coolaj86",
-};
+let members = require("./members.json");
 
 function cardToIssue(card) {
   return {
