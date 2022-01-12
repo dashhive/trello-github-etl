@@ -197,3 +197,181 @@ Transform.mapCardToIssueMkdn(cardWithIssues);
 - GitHub's GraphQL API for "Memexes" (Project Beta): \
   https://docs.github.com/en/issues/trying-out-the-new-projects-experience/using-the-api-to-manage-projects#adding-an-item-to-a-project
 - How to GraphQL: https://graphql.org/learn/queries/
+
+## JSON Examples
+
+- `board.cards[x]
+- `board.checklists[x]
+
+### `board.cards[x]
+
+```json5
+{
+  id: "614cee94c40be9391717fc4e",
+  address: null,
+  checkItemStates: null,
+  closed: false,
+  coordinates: null,
+  creationMethod: null,
+  dateLastActivity: "2022-01-12T05:35:00.228Z",
+  desc: "**Value Proposition**\nBounty management, discussions, on-boarding/training, document storage, and other Incubator work and workflows on the industry-leading platform for developers, co-located with our Incubator-funded public repos.",
+  descData: {
+    emoji: {},
+  },
+  dueReminder: null,
+  idBoard: "5e35713d369d4a775484d0b4",
+  idLabels: ["5ec9333fcc5a3231f90c4023"],
+  idList: "5f592342886341245a9827a0",
+  idMembersVoted: [],
+  idShort: 184,
+  idAttachmentCover: null,
+  locationName: null,
+  manualCoverAttachment: false,
+  name: "Incubator on GitHub",
+  pos: 1024,
+  shortLink: "m8w82CvE",
+  isTemplate: false,
+  cardRole: null,
+  badges: {
+    attachmentsByType: {
+      trello: {
+        board: 0,
+        card: 0,
+      },
+    },
+    location: false,
+    votes: 0,
+    viewingMemberVoted: false,
+    subscribed: false,
+    fogbugz: "",
+    checkItems: 18,
+    checkItemsChecked: 16,
+    checkItemsEarliestDue: "2022-01-13T01:00:00.000Z",
+    comments: 50,
+    attachments: 0,
+    description: true,
+    due: null,
+    dueComplete: false,
+    start: null,
+  },
+  dueComplete: false,
+  due: null,
+  idChecklists: [
+    "614ceec0993f871f55e0cd38",
+    "614e5e606bdd82239974875b",
+    "61573e6c0ce52a184268be26",
+    "615c6fffd5b4158e086a3234",
+  ],
+  idMembers: ["59ceb948feac14253a312881", "57e58ebcdb59d360ac33b82f"],
+  labels: [
+    {
+      id: "5ec9333fcc5a3231f90c4023",
+      idBoard: "5e35713d369d4a775484d0b4",
+      name: "Meta",
+      color: "pink",
+    },
+  ],
+  limits: {
+    attachments: {
+      perCard: {
+        status: "ok",
+        disableAt: 1000,
+        warnAt: 800,
+      },
+    },
+    checklists: {
+      perCard: {
+        status: "ok",
+        disableAt: 500,
+        warnAt: 400,
+      },
+    },
+    stickers: {
+      perCard: {
+        status: "ok",
+        disableAt: 70,
+        warnAt: 56,
+      },
+    },
+  },
+  shortUrl: "https://trello.com/c/m8w82CvE",
+  start: null,
+  subscribed: false,
+  url: "https://trello.com/c/m8w82CvE/184-incubator-on-github",
+  cover: {
+    idAttachment: null,
+    color: null,
+    idUploadedBackground: null,
+    size: "normal",
+    brightness: "dark",
+    idPlugin: null,
+  },
+  attachments: [],
+  pluginData: [],
+  customFieldItems: [
+    {
+      id: "6179da95ff04bf2d23bdc864",
+      value: {
+        text: "riongull",
+      },
+      idCustomField: "5ff85abd2b962872d01fe3bf",
+      idModel: "614cee94c40be9391717fc4e",
+      modelType: "card",
+    },
+    {
+      id: "614cef06ce2b394a0fc52c3e",
+      value: {
+        text: "https://trello.com/c/6XAuy9DW/94-request-new-concept#comment-614ce5673031a4043ef3d479",
+      },
+      idCustomField: "5fb2deb8cb3c7e36cb8614aa",
+      idModel: "614cee94c40be9391717fc4e",
+      modelType: "card",
+    },
+    {
+      id: "614ceef478d7c92b0f16879f",
+      value: {
+        checked: "true",
+      },
+      idCustomField: "5fad5f1b8db2260cdda1ffed",
+      idModel: "614cee94c40be9391717fc4e",
+      modelType: "card",
+    },
+  ],
+}
+```
+
+### `board.checklists[x]`
+
+```json5
+{
+  id: "614ceec0993f871f55e0cd38",
+  name: "Concept",
+  idCard: "614cee94c40be9391717fc4e",
+  pos: 16384,
+  creationMethod: null,
+  idBoard: "5e35713d369d4a775484d0b4",
+  limits: {
+    checkItems: {
+      perChecklist: {
+        status: "ok",
+        disableAt: 200,
+        warnAt: 160,
+      },
+    },
+  },
+  checkItems: [
+    {
+      idChecklist: "614ceec0993f871f55e0cd38",
+      state: "complete",
+      id: "614ceec0993f871f55e0cd39",
+      name: "1) Valid new concept accepted by an incubator admin (0.5 Dash)",
+      nameData: {
+        emoji: {},
+      },
+      pos: 16384,
+      due: null,
+      idMember: "57e58ebcdb59d360ac33b82f",
+    },
+  ],
+}
+```
