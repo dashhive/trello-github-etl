@@ -6,6 +6,14 @@ Transform and Parse.
 
 Load to GitHub Issues + Project (Beta).
 
+# Watch the Video
+
+[![Dash ETL Quickstart Screen Shot 2022-01-12 at 3 13 36 AM](https://user-images.githubusercontent.com/122831/149121467-1b8d0a29-2a7d-4c76-83ee-bb582173d5bf.jpg)](https://youtu.be/7GbBRw1JA2Q?t=15464)
+
+Starts at [4:17:44](https://youtu.be/7GbBRw1JA2Q?t=15464):
+
+- <https://youtu.be/7GbBRw1JA2Q?t=15464>
+
 # QuickStart
 
 If you've done this before, here's the high-level recap.
