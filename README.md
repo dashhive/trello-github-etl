@@ -10,7 +10,7 @@ Load to GitHub Issues + Project (Beta).
 
 [![Dash ETL Quickstart Screen Shot 2022-01-12 at 3 13 36 AM](https://user-images.githubusercontent.com/122831/149121467-1b8d0a29-2a7d-4c76-83ee-bb582173d5bf.jpg)](https://youtu.be/7GbBRw1JA2Q?t=15464)
 
-Starts at [4:17:44](https://youtu.be/7GbBRw1JA2Q?t=15464):
+19-minute Walkthrough [4:17:44 - 4:36:35](https://youtu.be/7GbBRw1JA2Q?t=15464):
 
 - <https://youtu.be/7GbBRw1JA2Q?t=15464>
 
