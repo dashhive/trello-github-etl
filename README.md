@@ -205,10 +205,10 @@ Transform.mapCardToIssueMkdn(cardWithIssues);
 
 ## JSON Examples
 
-- `board.cards[x]
-- `board.checklists[x]
+- `board.cards[x]`
+- `board.checklists[x]`
 
-### `board.cards[x]
+### `board.cards[x]`
 
 ```json5
 {
