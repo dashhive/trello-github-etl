@@ -100,27 +100,15 @@ You'll need to get this from the relevant Trello board. For example:
 - Click <kbd>... More</kbd> (yes, this feels very redundant)
 - Click <kbd>⤵️ Print &amp; Export</kbd>
 
-The relevant boards JSON file will be nested under a `./boards/` directory in
-the zip file. For example:
-
-```bash
-ls -lAh ~/Downloads/dash-trello-boards.zip
-mkdir -p ~/Downloads/dash-trello-boards
-pushd ~/Downloads/dash-trello-boards/
-unzip ../dash-trello-boards.zip
-find ~/Downloads/dash-trello-boards | grep '\.json$'
-```
-
 ```txt
-~/Downloads/dash-trello-boards/boards/dash_incubator_app/dash_incubator_app.json
+~/Downloads/FPJzDcok.json
 ```
 
 **You should rename** that file to `board.json` in the project directory. For
 example:
 
 ```bash
-mv ~/Downloads/dash-trello-boards/boards/dash_incubator_app/dash_incubator_app.json \
-    ./board.json
+mv ~/Downloads/FPJzDcok.json ./board.json
 ```
 
 ## `members.json`
