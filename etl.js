@@ -51,7 +51,7 @@ Etl.upsertCard = async function _upsertCard(card) {
 
   await card.checklists.reduce(async function (promise, checklist) {
     await promise;
-    await Etl.upsertChecklist(checklist);
+    await Etl.upsertChecklist(card, checklist);
   }, Promise.resolve());
 
   if (cardMeta.migration < M_LISTS) {
@@ -72,7 +72,7 @@ Etl.upsertCard = async function _upsertCard(card) {
   return changed;
 };
 
-Etl.upsertChecklistItem = async function _upsertChecklistItem(item) {
+Etl.upsertChecklistItem = async function _upsertChecklistItem(card, item) {
   // TODO: skipping closed items should be optional
   let closed = "complete" === item.state;
   if (closed) {
@@ -136,7 +136,6 @@ Etl.upsertChecklistItem = async function _upsertChecklistItem(item) {
       projectItemNodeId: projectItemNodeId,
     };
     store.set(`${ISSUE_TO_ITEM}:${item.id}:project`, projectMeta);
-    await sleep(SLEEP);
   }
 
   if (item._amount && !projectMeta.amount) {
@@ -146,7 +145,21 @@ Etl.upsertChecklistItem = async function _upsertChecklistItem(item) {
     );
     projectMeta.amount = item._amount;
     store.set(`${ISSUE_TO_ITEM}:${item.id}:project`, projectMeta);
-    await sleep(SLEEP);
+  }
+
+  let secondaryAdminID = "5ff85abd2b962872d01fe3bf";
+  let fallbackOwnerField = card.customFieldItems.find(function (card) {
+    return card.idCustomField === secondaryAdminID;
+  });
+  let fallbackOwner = fallbackOwnerField?.value?.text;
+  let isExpectedFallbackOwner = fallbackOwner === projectMeta.fallback_owner;
+  if (fallbackOwner && !isExpectedFallbackOwner) {
+    await gh.projects.setFallbackOwner(
+      projectMeta.projectItemNodeId,
+      fallbackOwner
+    );
+    projectMeta.fallback_owner = fallbackOwner;
+    store.set(`${ISSUE_TO_ITEM}:${item.id}:project`, projectMeta);
   }
 
   return changed;
@@ -165,11 +178,11 @@ function addIssuesToCardChecklistItems(card) {
   return card;
 }
 
-Etl.upsertChecklist = async function _upsertChecklist(checklist) {
+Etl.upsertChecklist = async function _upsertChecklist(card, checklist) {
   console.info("  [Checklist]", checklist.name);
   await checklist.checkItems.reduce(async function (promise, item) {
     await promise;
-    let changed = await Etl.upsertChecklistItem(item);
+    let changed = await Etl.upsertChecklistItem(card, item);
     if (changed) {
       await sleep(SLEEP);
     }
@@ -214,19 +227,18 @@ async function main(board) {
 
   cardsMap = null;
   /// end transform
+  let testCard = board.cards[73];
+  console.info("");
+  console.info("###", testCard.checklists[0].checkItems[0].name);
+  await Etl.upsertChecklistItem(testCard, testCard.checklists[0].checkItems[0]);
 
   console.info("");
-  console.info("###", board.cards[12].checklists[0].checkItems[0].name);
-  await Etl.upsertChecklistItem(board.cards[12].checklists[0].checkItems[0]);
+  console.info("##", testCard.checklists[0].name);
+  await Etl.upsertChecklist(testCard, testCard.checklists[0]);
 
   console.info("");
-  console.info("##", board.cards[12].checklists[0].name);
-  await Etl.upsertChecklist(board.cards[12].checklists[0]);
-
-  console.info("");
-  console.info("#", board.cards[12].name);
-  await Etl.upsertCard(board.cards[12]);
-
+  console.info("#", testCard.name);
+  await Etl.upsertCard(testCard);
   //console.info("");
   //console.info(cardToIssueBody(board.cards[0]).body);
   board.cards.reduce(async function (promise, card) {

@@ -169,8 +169,8 @@ board.cards.reduce(async function (promise, card) {
 let Etl = require("./etl.js");
 
 Etl.upsertCard(card);
-Etl.upsertChecklist(checklist);
-Etl.upsertChecklistItem(item);
+Etl.upsertChecklist(card, checklist);
+Etl.upsertChecklistItem(card, item);
 ```
 
 ```js
