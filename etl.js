@@ -161,6 +161,24 @@ Etl.upsertChecklistItem = async function _upsertChecklistItem(card, item) {
     projectMeta.fallback_owner = fallbackOwner;
     store.set(`${ISSUE_TO_ITEM}:${item.id}:project`, projectMeta);
   }
+  let fallbackOwnerId = "";
+  let ownerArray = card.idMembers;
+  if (fallbackOwner) {
+    fallbackOwnerId = Transform.usernameToId(fallbackOwner);
+  }
+
+  let ownerIdArray = ownerArray.filter(function (ownerId) {
+    return ownerId !== fallbackOwnerId;
+  });
+  let ownerId = ownerIdArray.toString();
+  console.log(fallbackOwnerId, ownerId);
+  let ownerUsername = Transform.idToUsername(ownerId);
+  console.log(fallbackOwner, ownerUsername);
+  if (ownerUsername && !projectMeta.owner_username) {
+    await gh.projects.setOwner(projectMeta.projectItemNodeId, ownerUsername);
+    projectMeta.owner_username = ownerUsername;
+    store.set(`${ISSUE_TO_ITEM}:${item.id}:project`, projectMeta);
+  }
 
   return changed;
 };
@@ -227,7 +245,7 @@ async function main(board) {
 
   cardsMap = null;
   /// end transform
-  let testCard = board.cards[73];
+  let testCard = board.cards[77];
   console.info("");
   console.info("###", testCard.checklists[0].checkItems[0].name);
   await Etl.upsertChecklistItem(testCard, testCard.checklists[0].checkItems[0]);
@@ -239,6 +257,7 @@ async function main(board) {
   console.info("");
   console.info("#", testCard.name);
   await Etl.upsertCard(testCard);
+
   //console.info("");
   //console.info(cardToIssueBody(board.cards[0]).body);
   board.cards.reduce(async function (promise, card) {
