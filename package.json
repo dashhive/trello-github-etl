@@ -4,6 +4,7 @@
   "description": "",
   "main": "etl.js",
   "scripts": {
+    "lint": "npx eslint@8.x '**/*.js' --ignore-path .gitignore",
     "test": "node tests/dash-parser-re.js"
   },
   "author": "AJ ONeal <aj@therootcompany.com> (https://therootcompany.com/)",
@@ -13,5 +14,8 @@
     "dom-storage": "^2.1.0",
     "dotenv": "^10.0.0",
     "json-storage": "^2.1.2"
+  },
+  "devDependencies": {
+    "eslint-plugin-es": "^4.1.0"
   }
 }

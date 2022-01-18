@@ -1,0 +1,21 @@
+{
+  "env": {
+    "commonjs": true,
+    "es2021": true,
+    "node": true
+  },
+  "extends": "eslint:recommended",
+  "plugins": ["es"],
+  "parserOptions": {
+    "ecmaVersion": "latest"
+  },
+  "rules": {
+    "es/no-arrow-functions": "error",
+    "es/no-block-scoped-functions": "error",
+    "es/no-classes": "error",
+    "es/no-generators": "error",
+    "func-style": ["error", "declaration"],
+    "linebreak-style": ["error", "unix"],
+    "semi": ["error", "always"]
+  }
+}
