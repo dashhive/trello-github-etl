@@ -194,6 +194,8 @@ Transform.mapChecklistItemToIssue(item);
 
 // Note: cardWithIssues = addIssuesToCardChecklistItems(card);
 Transform.mapCardToIssueMkdn(cardWithIssues);
+Transform.trelloIdToUsername(id);
+Transform.trelloUsernameToId(username);
 ```
 
 # Resources

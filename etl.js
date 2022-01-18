@@ -20,6 +20,7 @@ let store = JsonStorage.create(localStorage, "trello-gh-projects", {
 
 let Transform = require("./lib/transform.js");
 let gh = require("./lib/gh.js");
+let trelloFields = require("./trello-fields.json");
 
 Etl.upsertCard = async function _upsertCard(card) {
   // TODO: make optional
@@ -147,9 +148,8 @@ Etl.upsertChecklistItem = async function _upsertChecklistItem(card, item) {
     store.set(`${ISSUE_TO_ITEM}:${item.id}:project`, projectMeta);
   }
 
-  let secondaryAdminID = "5ff85abd2b962872d01fe3bf";
   let fallbackOwnerField = card.customFieldItems.find(function (card) {
-    return card.idCustomField === secondaryAdminID;
+    return card.idCustomField === trelloFields.secondaryAdmin;
   });
   let fallbackOwner = fallbackOwnerField?.value?.text;
   let isExpectedFallbackOwner = fallbackOwner === projectMeta.fallback_owner;
@@ -162,18 +162,14 @@ Etl.upsertChecklistItem = async function _upsertChecklistItem(card, item) {
     store.set(`${ISSUE_TO_ITEM}:${item.id}:project`, projectMeta);
   }
   let fallbackOwnerId = "";
-  let ownerArray = card.idMembers;
+  let ownersIds = card.idMembers;
   if (fallbackOwner) {
-    fallbackOwnerId = Transform.usernameToId(fallbackOwner);
+    fallbackOwnerId = Transform.trelloUsernameToId(fallbackOwner);
   }
-
-  let ownerIdArray = ownerArray.filter(function (ownerId) {
+  let ownerId = ownersIds.find(function (ownerId) {
     return ownerId !== fallbackOwnerId;
   });
-  let ownerId = ownerIdArray.toString();
-  console.log(fallbackOwnerId, ownerId);
-  let ownerUsername = Transform.idToUsername(ownerId);
-  console.log(fallbackOwner, ownerUsername);
+  let ownerUsername = Transform.trelloIdToUsername(ownerId);
   if (ownerUsername && !projectMeta.owner_username) {
     await gh.projects.setOwner(projectMeta.projectItemNodeId, ownerUsername);
     projectMeta.owner_username = ownerUsername;
@@ -245,7 +241,7 @@ async function main(board) {
 
   cardsMap = null;
   /// end transform
-  let testCard = board.cards[77];
+  let testCard = board.cards[72];
   console.info("");
   console.info("###", testCard.checklists[0].checkItems[0].name);
   await Etl.upsertChecklistItem(testCard, testCard.checklists[0].checkItems[0]);
