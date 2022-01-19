@@ -149,6 +149,19 @@ because there's really no magic to do that for you... :)
 }
 ```
 
+## `trello-fields.json`
+
+This file also needs to be created by hand. It's used for mapping a custom field
+name to custom field id.
+
+Custom fields are located at in the trello JSON object at board.customFields
+
+````json5
+{
+  // "name of custom field : "id number of custom field",
+  "secondaryAdmin" : "5ff85abd2b962872d01fe3bf",
+}
+
 # API
 
 ```js
@@ -382,3 +395,4 @@ Transform.trelloUsernameToId(username);
   ],
 }
 ```
+````
