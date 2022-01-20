@@ -48,6 +48,7 @@ vim .env
 ```bash
 vim board.json
 vim members.json
+vim trello-fields.json
 ```
 
 ```bash

@@ -162,10 +162,11 @@ Etl.upsertChecklistItem = async function _upsertChecklistItem(card, item) {
     store.set(`${ISSUE_TO_ITEM}:${item.id}:project`, projectMeta);
   }
   let fallbackOwnerId = "";
-  let ownersIds = card.idMembers;
   if (fallbackOwner) {
     fallbackOwnerId = Transform.trelloUsernameToId(fallbackOwner);
   }
+
+  let ownersIds = card.idMembers;
   let ownerId = ownersIds.find(function (ownerId) {
     return ownerId !== fallbackOwnerId;
   });
