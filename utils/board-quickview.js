@@ -50,6 +50,7 @@ let actives = {
   "Typoed Members": {},
   Columns: {},
   Labels: {},
+  "Custom Fields": {},
   Checklists: {},
 };
 
@@ -74,6 +75,13 @@ cards
     });
     card._trelloCardType = list.name;
     actives.Columns[card._trelloCardType] = true;
+
+    card.customFieldItems.forEach(function (field) {
+      let customField = board.customFields.find(function (cf) {
+        return field.idCustomField === cf.id;
+      });
+      actives["Custom Fields"][customField.name] = true;
+    });
 
     let labels = card.labels.map(function (label) {
       actives.Labels[label.name] = true;
