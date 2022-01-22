@@ -52,6 +52,10 @@ vim trello-fields.json
 ```
 
 ```bash
+node ./utils/board-quickview.js
+```
+
+```bash
 node ./etl.js
 ```
 
@@ -112,6 +116,12 @@ example:
 
 ```bash
 mv ~/Downloads/FPJzDcok.json ./board.json
+```
+
+To take a quick look at the info on the board:
+
+```bash
+node ./utils/board-quickview.js
 ```
 
 ## `members.json`

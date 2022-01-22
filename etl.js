@@ -211,37 +211,8 @@ async function sleep(delay) {
 }
 
 async function main(board) {
-  /// begin transform
-  // transform between the old trello board.json and the new
-  let cardsMap = {};
+  board = Transform.trelloBoardUpgrade(board);
 
-  board.cards.forEach(function (card) {
-    cardsMap[card.id] = card;
-    // the new format doesn't have checklists
-    if (!card.checklists) {
-      card.checklists = [];
-      card._newChecklists = true;
-    }
-  });
-
-  if (board.checklists) {
-    board.checklists.forEach(function (checklist) {
-      let card = cardsMap[checklist.idCard];
-      if (card._newChecklists) {
-        card.checklists.push(checklist);
-      }
-    });
-  }
-
-  board.cards.forEach(function (card) {
-    // sort checklists by Trello sort order
-    card.checklists.sort(function (a, b) {
-      return a.pos - b.pos;
-    });
-  });
-
-  cardsMap = null;
-  /// end transform
   let testCard = board.cards[72];
   console.info("");
   console.info("###", testCard.checklists[0].checkItems[0].name);
