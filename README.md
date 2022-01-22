@@ -147,11 +147,12 @@ name to custom field id.
 
 Custom fields are located at in the trello JSON object at board.customFields
 
-````json5
+```json5
 {
   // "name of custom field : "id number of custom field",
-  "secondaryAdmin" : "5ff85abd2b962872d01fe3bf",
+  secondaryAdmin: "5ff85abd2b962872d01fe3bf",
 }
+```
 
 # API
 
@@ -386,4 +387,3 @@ Transform.trelloUsernameToId(username);
   ],
 }
 ```
-````
