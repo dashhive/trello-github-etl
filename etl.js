@@ -20,11 +20,10 @@ let store = JsonStorage.create(localStorage, "trello-gh-projects", {
 
 let Transform = require("./lib/transform.js");
 let gh = require("./lib/gh.js");
-let trelloFields = require("./trello-fields.json");
 
 Etl.upsertCard = async function _upsertCard(card) {
   // TODO: make optional
-  if (card.closed) {
+  if (card._inactive) {
     // don't import completed items
     return;
   }
@@ -48,6 +47,66 @@ Etl.upsertCard = async function _upsertCard(card) {
   if (!cardMeta.migration) {
     cardMeta.migration = M_CREATED;
     store.set(`meta:card:${card.id}`, cardMeta);
+  }
+
+  if (!cardMeta.projectItemNodeId) {
+    let projectItemNodeId = await gh.projects.add(fullIssue.node_id);
+    cardMeta.issueNodeId = fullIssue.node_id;
+    cardMeta.projectItemNodeId = projectItemNodeId;
+    store.set(`meta:card:${card.id}`, cardMeta);
+  }
+
+  //
+  // Set Custom Fields
+  // TODO get project info instead of caching locally
+  // TODO set multiple custom fields at once
+  //
+
+  // GITHUB_TRELLO_ID_FIELD
+  if (!cardMeta.projectTrelloId) {
+    await gh.projects.setFieldValue(
+      cardMeta.projectItemNodeId,
+      process.env.GITHUB_TRELLO_ID_FIELD,
+      card.id
+    );
+    cardMeta.projectTrelloId = card.id;
+    store.set(`meta:card:${card.id}`, cardMeta);
+  }
+  // GITHUB_TRELLO_TYPE_FIELD
+  if (!cardMeta.projectTrelloType) {
+    let trelloType = "Card";
+    await gh.projects.setFieldValue(
+      cardMeta.projectItemNodeId,
+      process.env.GITHUB_TRELLO_TYPE_FIELD,
+      trelloType
+    );
+    cardMeta.projectTrelloType = trelloType;
+    store.set(`meta:card:${card.id}`, cardMeta);
+  }
+
+  // GITHUB_TRELLO_CARD_TYPE_FIELD
+  if (!cardMeta.projectTrelloCardType) {
+    let trelloCardType = card._trelloCardType;
+    await gh.projects.setFieldValue(
+      cardMeta.projectItemNodeId,
+      process.env.GITHUB_TRELLO_CARD_TYPE_FIELD,
+      trelloCardType
+    );
+    cardMeta.projectTrelloCardType = trelloCardType;
+    store.set(`meta:card:${card.id}`, cardMeta);
+  }
+
+  // GITHUB_TRELLO_LABELS_FIELD
+  // TODO check for expected labels
+  if (!cardMeta.projectTrelloLabels) {
+    let trelloLabels = card._trelloLabels.join(", ");
+    await gh.projects.setFieldValue(
+      cardMeta.projectItemNodeId,
+      process.env.GITHUB_TRELLO_LABELS_FIELD,
+      trelloLabels
+    );
+    cardMeta.projectTrelloLabels = trelloLabels;
+    store.set(`meta:card:${card.id}`, trelloLabels);
   }
 
   await card.checklists.reduce(async function (promise, checklist) {
@@ -75,13 +134,10 @@ Etl.upsertCard = async function _upsertCard(card) {
 
 Etl.upsertChecklistItem = async function _upsertChecklistItem(card, item) {
   // TODO: skipping closed items should be optional
-  let closed = "complete" === item.state;
-  if (closed) {
+  if (item._inactive) {
     // don't import completed items
     return;
   }
-
-  item = Transform.parseChecklistItem(item);
 
   console.info(
     `    [Item/Task ${item.id}]`,
@@ -139,7 +195,61 @@ Etl.upsertChecklistItem = async function _upsertChecklistItem(card, item) {
     store.set(`${ISSUE_TO_ITEM}:${item.id}:project`, projectMeta);
   }
 
-  if (item._amount && !projectMeta.amount) {
+  // GITHUB_TRELLO_ID_FIELD
+  if (!projectMeta.projectTrelloId) {
+    let trelloId = item.id;
+    await gh.projects.setFieldValue(
+      projectMeta.projectItemNodeId,
+      process.env.GITHUB_TRELLO_ID_FIELD,
+      trelloId
+    );
+    projectMeta.projectTrelloId = trelloId;
+    store.set(`${ISSUE_TO_ITEM}:${item.id}:project`, projectMeta);
+  }
+
+  // GITHUB_TRELLO_TYPE_FIELD
+  if (!projectMeta.projectTrelloType) {
+    let trelloType = "Task";
+    await gh.projects.setFieldValue(
+      projectMeta.projectItemNodeId,
+      process.env.GITHUB_TRELLO_TYPE_FIELD,
+      trelloType
+    );
+    projectMeta.projectTrelloType = trelloType;
+    store.set(`${ISSUE_TO_ITEM}:${item.id}:project`, projectMeta);
+  }
+
+  // GITHUB_TRELLO_TASK_TYPE_FIELD
+  if (!projectMeta.projectTrelloTaskType) {
+    let trelloTaskType = item._trelloTaskType;
+    await gh.projects.setFieldValue(
+      projectMeta.projectItemNodeId,
+      process.env.GITHUB_TRELLO_TASK_TYPE_FIELD,
+      trelloTaskType
+    );
+    projectMeta.projectTrelloTaskType = trelloTaskType;
+    store.set(`${ISSUE_TO_ITEM}:${item.id}:project`, projectMeta);
+  }
+
+  let isExpectedOwner = card._owner === projectMeta.owner_username;
+  if (card._owner && !isExpectedOwner) {
+    await gh.projects.setOwner(projectMeta.projectItemNodeId, card._owner);
+    projectMeta.owner_username = card._owner;
+    store.set(`${ISSUE_TO_ITEM}:${item.id}:project`, projectMeta);
+  }
+
+  let isExpectedFallback = card._fallbackOwner === projectMeta.fallback_owner;
+  if (card._fallbackOwner && !isExpectedFallback) {
+    await gh.projects.setFallbackOwner(
+      projectMeta.projectItemNodeId,
+      card._fallbackOwner
+    );
+    projectMeta.fallback_owner = card._fallbackOwner;
+    store.set(`${ISSUE_TO_ITEM}:${item.id}:project`, projectMeta);
+  }
+
+  let isExpectedBounty = item._amount === projectMeta.amount;
+  if (item._amount && !isExpectedBounty) {
     await gh.projects.setDashAmount(
       projectMeta.projectItemNodeId,
       item._amount
@@ -148,32 +258,17 @@ Etl.upsertChecklistItem = async function _upsertChecklistItem(card, item) {
     store.set(`${ISSUE_TO_ITEM}:${item.id}:project`, projectMeta);
   }
 
-  let fallbackOwnerField = card.customFieldItems.find(function (card) {
-    return card.idCustomField === trelloFields.secondaryAdmin;
-  });
-  let fallbackOwner = fallbackOwnerField?.value?.text;
-  let isExpectedFallbackOwner = fallbackOwner === projectMeta.fallback_owner;
-  if (fallbackOwner && !isExpectedFallbackOwner) {
-    await gh.projects.setFallbackOwner(
+  // GITHUB_TRELLO_TASK_ASSIGNEE_FIELD
+  let isExpectedAssignee =
+    item._assignee === projectMeta.projectTrelloTaskAssignee;
+  if (item._assignee && !isExpectedAssignee) {
+    let trelloTaskAssignee = item._assignee;
+    await gh.projects.setFieldValue(
       projectMeta.projectItemNodeId,
-      fallbackOwner
+      process.env.GITHUB_TRELLO_TASK_ASSIGNEE_FIELD,
+      trelloTaskAssignee
     );
-    projectMeta.fallback_owner = fallbackOwner;
-    store.set(`${ISSUE_TO_ITEM}:${item.id}:project`, projectMeta);
-  }
-  let fallbackOwnerId = "";
-  if (fallbackOwner) {
-    fallbackOwnerId = Transform.trelloUsernameToId(fallbackOwner);
-  }
-
-  let ownersIds = card.idMembers;
-  let ownerId = ownersIds.find(function (ownerId) {
-    return ownerId !== fallbackOwnerId;
-  });
-  let ownerUsername = Transform.trelloIdToUsername(ownerId);
-  if (ownerUsername && !projectMeta.owner_username) {
-    await gh.projects.setOwner(projectMeta.projectItemNodeId, ownerUsername);
-    projectMeta.owner_username = ownerUsername;
+    projectMeta.projectTrelloTaskAssignee = trelloTaskAssignee;
     store.set(`${ISSUE_TO_ITEM}:${item.id}:project`, projectMeta);
   }
 
@@ -212,6 +307,26 @@ async function sleep(delay) {
 
 async function main(board) {
   board = Transform.trelloBoardUpgrade(board);
+  board.cards.forEach(function (card) {
+    // adds these properties to each card:
+    //
+    // - _inactive
+    // - _trelloCardType
+    // - _trelloCustomFields,
+    // - _trelloLabels
+    // - _owner
+    // - _fallbackOwner
+    //
+    // and these properties to each item:
+    //
+    // - _inactive
+    // - _amount
+    // - _title
+    // - _desc
+    // - _trelloTaskType
+    // - _assignee
+    Transform.customizeTrelloCard(card);
+  });
 
   let testCard = board.cards[72];
   console.info("");
