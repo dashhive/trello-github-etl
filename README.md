@@ -202,6 +202,12 @@ GH.projects.setDashAmount(projectItemId, amount);
 ```js
 let Transform = require("./lib/transform.js");
 
+// transforms newer Trello board.json to our prior version
+Transform.trelloBoardUpgrade(board);
+
+// parses and adds our special properties (prefixed with `_`)
+Transform.customizeTrelloCard(card);
+
 Transform.parseChecklistItem(item);
 
 Transform.mapCardToIssue(card);
