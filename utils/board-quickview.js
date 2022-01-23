@@ -9,26 +9,6 @@ board = Transform.trelloBoardUpgrade(board);
 let cards = board.cards;
 //let checklists = board.checklists;
 
-let trelloFields = require("../trello-fields.json");
-
-function grabDirtyFallbackOwner(card) {
-  let fallbackOwnerField = card.customFieldItems.find(function (field) {
-    return field.idCustomField === trelloFields.secondaryAdmin;
-  });
-
-  let fallbackOwner = fallbackOwnerField?.value?.text?.replace(/^@/, "");
-  return fallbackOwner;
-
-  /*
-  let fallbackOwnerId = "";
-  if (fallbackOwner) {
-    fallbackOwnerId = Transform.trelloUsernameToId(fallbackOwner);
-  }
-
-  return fallbackOwnerId;
-  */
-}
-
 console.info("");
 console.info("Trello board stuff...");
 console.info("");
@@ -65,73 +45,52 @@ cards
   //.slice(70, 80)
   //
   .forEach(function (card) {
-    if (card.closed) {
+    // adds these properties to each card:
+    //
+    // - _inactive
+    // - _trelloCardType
+    // - _trelloCustomFields,
+    // - _trelloLabels
+    // - _owner
+    // - _fallbackOwner
+    //
+    // and these properties to each item:
+    //
+    // - _inactive
+    // - _amount
+    // - _title
+    // - _desc
+    // - _trelloTaskType
+    // - _assignee
+    Transform.customizeTrelloCard(card);
+    if (card._inactive) {
       // skip closed card
       return;
     }
 
-    let list = board.lists.find(function (list) {
-      return list.id === card.idList;
-    });
-    card._trelloCardType = list.name;
     actives.Columns[card._trelloCardType] = true;
-
-    card.customFieldItems.forEach(function (field) {
-      let customField = board.customFields.find(function (cf) {
-        return field.idCustomField === cf.id;
-      });
+    card._trelloCustomFields.forEach(function (customField) {
       actives["Custom Fields"][customField.name] = true;
     });
 
-    let labels = card.labels.map(function (label) {
-      actives.Labels[label.name] = true;
-      return label.name;
+    card._trelloLabels.forEach(function (label) {
+      actives.Labels[label] = true;
     });
-    if (!labels.length) {
-      labels.push("! No Label");
+    if (!card._trelloLabels) {
+      card._trelloLabels.push("!Label");
     }
 
-    // Set Owner & Fallback Owner
-    card._members = card.idMembers.map(function (id) {
-      return Transform.trelloIdToUsername(id);
-    });
-    card.__fallbackOwner = grabDirtyFallbackOwner(card);
-    card._owner = card._members.find(function (m) {
-      // "riongull".match("samkirby") // null
-      // "samkirby22".match("samkirby") // ["samkirby22", "samkirby"]
-      if (!card.__fallbackOwner) {
-        return true;
-      }
-      return !m.toLowerCase().match(card.__fallbackOwner.toLowerCase());
-    });
     if (!card._owner) {
-      card._owner = "! No Owner";
+      card._owner = "!Owner";
     } else {
       actives.Members[card._owner] = true;
     }
 
-    // Set "clean" Fallback Owner
-    if (card.__fallbackOwner) {
-      card._fallbackOwner = card._members.find(function (m) {
-        // protect against similar names
-        // [ "sam", "samkirby" ]
-        if (card._owner) {
-          if (m.toLowerCase() === card._owner.toLowerCase()) {
-            return false;
-          }
-        }
-
-        // TODO  distinguish between perfect and similar matches?
-        return m.toLowerCase().match(card.__fallbackOwner.toLowerCase());
-      });
-      if (card._fallbackOwner) {
-        actives.Members[card._fallbackOwner] = true;
-      } else {
-        actives["Typoed Members"][card.__fallbackOwner] = true;
+    if (!card._fallbackOwner || "!Fallback" === card._fallbackOwner) {
+      card._fallbackOwner = "!Fallback";
+      if (card._rawFallbackOwner) {
+        actives["Typoed Members"][card._rawFallbackOwner] = true;
       }
-    }
-    if (!card._fallbackOwner) {
-      card._fallbackOwner = "! No Fallback Owner";
     }
 
     console.info(
@@ -142,9 +101,9 @@ cards
         card._trelloCardType,
         "-",
         card._owner,
-        card._fallbackOwner || card.__fallbackOwner + "*",
+        card._fallbackOwner || card._rawFallbackOwner + "*",
         "-",
-        labels.join(", "),
+        card._trelloLabels.join(", "),
       ].join("|"),
       "|"
     );
@@ -156,10 +115,9 @@ cards
           return;
         }
 
-        let taskType = checklist.name.replace(/\s*Tasks?\s*/, "") + " Task";
-        actives.Checklists[taskType] = true;
+        actives.Checklists[item._trelloTaskType] = true;
 
-        let member = "! Not Assigned";
+        let member = "!Assigned";
         if (item.idMember) {
           member = Transform.trelloIdToUsername(item.idMember);
           if (!member) {
@@ -176,10 +134,10 @@ cards
             item.id,
             "Task",
             "-", //card._trelloCardType,
-            taskType,
+            item._trelloTaskType,
             "-", //card._owner,
             "-", //card._fallbackOwner || card.__fallbackOwner + "*",
-            member,
+            item._assignee,
             "-", //labels.join(", ")
           ].join("|"),
           "|"
