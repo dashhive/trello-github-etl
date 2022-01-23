@@ -96,6 +96,23 @@ Etl.upsertCard = async function _upsertCard(card) {
     store.set(`meta:card:${card.id}`, cardMeta);
   }
 
+  let isExpectedOwner = card._owner === cardMeta.owner_username;
+  if (card._owner && !isExpectedOwner) {
+    await gh.projects.setOwner(cardMeta.projectItemNodeId, card._owner);
+    cardMeta.owner_username = card._owner;
+    store.set(`meta:card:${card.id}`, card._owner);
+  }
+
+  let isExpectedFallback = card._fallbackOwner === cardMeta.fallback_owner;
+  if (card._fallbackOwner && !isExpectedFallback) {
+    await gh.projects.setFallbackOwner(
+      cardMeta.projectItemNodeId,
+      card._fallbackOwner
+    );
+    cardMeta.fallback_owner = card._fallbackOwner;
+    store.set(`meta:card:${card.id}`, card._fallbackOwner);
+  }
+
   // GITHUB_TRELLO_LABELS_FIELD
   // TODO check for expected labels
   if (!cardMeta.projectTrelloLabels) {
