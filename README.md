@@ -69,18 +69,17 @@ See <https://github.com/settings/tokens>. \
 The permissions that need to be checked for the token can be found at the top of
 the .env file
 
-### `GITHUB_PROJECT`
+### `GITHUB_PROJECT_NAME`
 
-The Project Number (used to get the Project Node ID) can be found in the URL of
-the project. For example:
+The Project (Beta) Name (used to get the Project Node ID) is whatever you named
+your project.
 
-- <https://github.com/orgs/dashtesting/projects/2/views/1>
+- <https://github.com/orgs/dashtesting/projects?type=beta>
 
-Here the project number is `2`.
+### `GITHUB_TRELLO_*_FIELD_NAME`
 
-### `GITHUB_DASH_FIELD`
-
-Get the GraphQL field NodeID using the provided util. For example:
+You can see a list of all of your fields (and their GraphQL NodeID) using the
+provided util. For example:
 
 ```bash
 node utils/get-github-project-fields.js
@@ -94,8 +93,6 @@ node utils/get-github-project-fields.js
 "MDE2OlByb2plY3ROZXh0RmllbGQxMDM4Nzc0": "Task Type"
 "MDE2OlByb2plY3ROZXh0RmllbGQxMDQwNDc4": "Fallback Owner"
 ```
-
-Here the Dash Field ID is `MDE2OlByb2plY3ROZXh0RmllbGQ5NTE0NTg=`.
 
 ## `board.json`
 
@@ -191,12 +188,29 @@ Etl.upsertChecklistItem(card, item);
 ```js
 let GH = require("./lib/gh.js");
 
+GH.mustInit();
+
 GH.issues.create({ title, body, assignments });
 GH.issues.update(number, { title, body, assignments, state });
 
-GH.projects.getCustomFields();
-GH.projects.add(issueOrPrNodeId);
-GH.projects.setDashAmount(projectItemId, amount);
+GH.graphql(query, variables);
+GH.orgs.get({ login });
+
+GH.projects.create({ ownerId, name, repositoryIds = [] });
+GH.projects.getByName({ name });
+GH.projects.getNodeIdByNumber({ projectNumber });
+GH.projects.getNodeIdByName({ name });
+GH.projects.add(issueNodeId);
+GH.projects.addBoardColumn({ name });
+GH.projects.getTableFields({ name, projectNodeId });
+GH.projects.setFieldValue(itemId, fieldId, value);
+GH.projects.setDashAmount(itemId, value);
+GH.projects.setFallbackOwner(itemId, value);
+GH.projects.setOwner(itemId, value);
+
+GH.repos.create(repo);
+GH.repos.get(repo);
+GH.repos.getOrCreate(repo);
 ```
 
 ```js

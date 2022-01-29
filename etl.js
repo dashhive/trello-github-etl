@@ -323,6 +323,8 @@ async function sleep(delay) {
 }
 
 async function main(board) {
+  await gh.mustInit();
+
   board = Transform.trelloBoardUpgrade(board);
   board.cards.forEach(function (card) {
     // adds these properties to each card:
@@ -345,7 +347,11 @@ async function main(board) {
     Transform.customizeTrelloCard(card);
   });
 
-  let testCard = board.cards[72];
+  let testCard = board.cards.find(function (card) {
+    // 614cee94c40be9391717fc4e
+    //return "Incubator on GitHub" === card.name;
+    return "Decentralized TLS/HTTPS for DAPI" === card.name;
+  });
   console.info("");
   console.info("###", testCard.checklists[0].checkItems[0].name);
   await Etl.upsertChecklistItem(testCard, testCard.checklists[0].checkItems[0]);
@@ -358,6 +364,7 @@ async function main(board) {
   console.info("#", testCard.name);
   await Etl.upsertCard(testCard);
 
+  return;
   //console.info("");
   //console.info(cardToIssueBody(board.cards[0]).body);
   board.cards.reduce(async function (promise, card) {
