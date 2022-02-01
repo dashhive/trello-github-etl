@@ -225,6 +225,8 @@ Transform.customizeTrelloCard(card);
 Transform.parseChecklistItem(item);
 
 Transform.mapCardToIssue(card);
+// Ex: "Complete" => "Completed"
+Transform.mapCardTypeToStatus(cardType);
 Transform.mapChecklistItemToIssue(item);
 
 // Note: cardWithIssues = addIssuesToCardChecklistItems(card);

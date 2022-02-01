@@ -84,6 +84,17 @@ Etl.upsertCard = async function _upsertCard(card) {
     store.set(`meta:card:${card.id}`, cardMeta);
   }
 
+  // GITHUB_TRELLO_CARD_STATUS_FIELD
+  if (!cardMeta.projectTrelloCardStatus) {
+    await gh.projects.setFieldValue(
+      cardMeta.projectItemNodeId,
+      process.env.GITHUB_TRELLO_CARD_STATUS_FIELD,
+      card._trelloCardStatus
+    );
+    cardMeta.projectTrelloCardStatus = card._trelloCardStatus;
+    store.set(`meta:card:${card.id}`, cardMeta);
+  }
+
   // GITHUB_TRELLO_CARD_TYPE_FIELD
   if (!cardMeta.projectTrelloCardType) {
     let trelloCardType = card._trelloCardType;
