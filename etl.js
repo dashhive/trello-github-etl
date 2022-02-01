@@ -128,8 +128,9 @@ Etl.upsertCard = async function _upsertCard(card) {
   }
 
   // GITHUB_TRELLO_LABELS_FIELD
-  // TODO check for expected labels
-  if (!cardMeta.projectTrelloLabels) {
+  let isExpectedLabel =
+    card._trelloLabels.join(",") === cardMeta.projectTrelloLabels;
+  if (card._trelloLabels.length && !isExpectedLabel) {
     let trelloLabels = card._trelloLabels.join(", ");
     await gh.projects.setFieldValue(
       cardMeta.projectItemNodeId,
@@ -399,7 +400,7 @@ async function main(board) {
   console.info("#", testCard.name);
   await Etl.upsertCard(testCard);
 
-  return;
+  //return;
   //console.info("");
   //console.info(cardToIssueBody(board.cards[0]).body);
   board.cards.reduce(async function (promise, card) {
