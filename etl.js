@@ -49,6 +49,9 @@ Etl.upsertCard = async function _upsertCard(card) {
     store.set(`meta:card:${card.id}`, cardMeta);
   }
 
+  // XXX because it turns out we want the parent issue data at the task issue level
+  card._issue = fullIssue;
+
   if (!cardMeta.projectItemNodeId) {
     let projectItemNodeId = await gh.projects.add(fullIssue.node_id);
     cardMeta.issueNodeId = fullIssue.node_id;
@@ -235,6 +238,22 @@ Etl.upsertChecklistItem = async function _upsertChecklistItem(card, item) {
     store.set(`${ISSUE_TO_ITEM}:${item.id}:project`, projectMeta);
   }
 
+  // GITHUB_TRELLO_PARENT_LINK_FIELD
+  if (!projectMeta.projectParent) {
+    await gh.projects.setFieldValue(
+      projectMeta.projectItemNodeId,
+      process.env.GITHUB_TRELLO_TASK_PARENT_FIELD,
+      card.name
+    );
+    await gh.projects.setFieldValue(
+      projectMeta.projectItemNodeId,
+      process.env.GITHUB_TRELLO_TASK_PARENT_LINK_FIELD,
+      card._issue.html_url
+    );
+    projectMeta.projectParent = card._issue.id;
+    store.set(`${ISSUE_TO_ITEM}:${item.id}:project`, projectMeta);
+  }
+
   // GITHUB_TRELLO_TYPE_FIELD
   if (!projectMeta.projectTrelloType) {
     let trelloType = "Task";
@@ -259,6 +278,9 @@ Etl.upsertChecklistItem = async function _upsertChecklistItem(card, item) {
     store.set(`${ISSUE_TO_ITEM}:${item.id}:project`, projectMeta);
   }
 
+  if (item._assignee === card._owner) {
+    item._owner = card._fallbackOwner;
+  }
   let isExpectedOwner = card._owner === projectMeta.owner_username;
   if (card._owner && !isExpectedOwner) {
     await gh.projects.setOwner(projectMeta.projectItemNodeId, card._owner);
@@ -363,6 +385,7 @@ async function main(board) {
     //return "Incubator on GitHub" === card.name;
     return "Decentralized TLS/HTTPS for DAPI" === card.name;
   });
+  /*
   console.info("");
   console.info("###", testCard.checklists[0].checkItems[0].name);
   await Etl.upsertChecklistItem(testCard, testCard.checklists[0].checkItems[0]);
@@ -370,6 +393,7 @@ async function main(board) {
   console.info("");
   console.info("##", testCard.checklists[0].name);
   await Etl.upsertChecklist(testCard, testCard.checklists[0]);
+  */
 
   console.info("");
   console.info("#", testCard.name);
