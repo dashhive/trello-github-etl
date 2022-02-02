@@ -128,9 +128,9 @@ Etl.upsertCard = async function _upsertCard(card) {
   }
 
   // GITHUB_TRELLO_LABELS_FIELD
-  // TODO check for expected labels
-  if (!cardMeta.projectTrelloLabels) {
-    let trelloLabels = card._trelloLabels.join(", ");
+  let isExpectedLabel = card._trelloLabels[0] === cardMeta.projectTrelloLabels;
+  if (card._trelloLabels.length && !isExpectedLabel) {
+    let trelloLabels = card._trelloLabels[0];
     await gh.projects.setFieldValue(
       cardMeta.projectItemNodeId,
       process.env.GITHUB_TRELLO_LABELS_FIELD,
@@ -138,6 +138,11 @@ Etl.upsertCard = async function _upsertCard(card) {
     );
     cardMeta.projectTrelloLabels = trelloLabels;
     store.set(`meta:card:${card.id}`, trelloLabels);
+  }
+  if (card._trelloLabels.length > 1) {
+    console.warn(
+      `[warn] can only set the first label for '${card._trelloLabels}' of '${card.id}'`
+    );
   }
 
   await card.checklists.reduce(async function (promise, checklist) {
