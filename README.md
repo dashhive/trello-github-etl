@@ -160,17 +160,6 @@ Custom fields are located at in the trello JSON object at board.customFields
   secondaryAdmin: "5ff85abd2b962872d01fe3bf",
 }
 ```
-## Using the script
-
-The file at `bin/extract-fields` can be run on a a `board.json` in order to generate 
-a `trello-fields.json` file. 
-
-```bash
-./bin/extract-fields board.json trello-fields.json
-
-```
-**NOTE**: the command must be ran outside the bin dir as in the snippet above.
-
 
 # API
 
