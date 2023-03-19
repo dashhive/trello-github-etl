@@ -11,15 +11,16 @@ const ISSUE_TO_CARD = "card";
 
 let Etl = module.exports;
 
-let Storage = require("dom-storage");
-let localStorage = new Storage("./db.json", { strict: true, ws: "  " });
-let JsonStorage = require("json-storage").JsonStorage;
-let store = JsonStorage.create(localStorage, "trello-gh-projects", {
-  stringify: true,
-});
-
 let Transform = require("./lib/transform.js");
 let gh = require("./lib/gh.js");
+const dd = require("./lib/debug.js");
+let ProjectName = process.env.GITHUB_PROJECT_NAME;
+let Storage = require("./lib/store.js");
+let store = new Storage("./db.json", {
+  namespace: "trello-gh-projects",
+  strict: true,
+  ws: "  ",
+});
 
 Etl.upsertCard = async function _upsertCard(card) {
   // TODO: make optional
@@ -31,20 +32,19 @@ Etl.upsertCard = async function _upsertCard(card) {
   console.info("[Desc/Bounty]", card.name);
   let changed = false;
   let fullIssue = store.get(`${ISSUE_TO_CARD}:${card.id}`);
-  let cardMeta = store.get(`meta:card:${card.id}`) || {
-    // left for backwards compat with anyone who happened to run this
-    // before I changed it (probably just me)
-    migration: fullIssue?.__migration,
-  };
+  let cardMeta = store.get(`meta:card:${card.id}`) || {};
   store.set(`meta:card:${card.id}`, cardMeta);
   let issue = Transform.mapCardToIssue(card);
+
+  //TODO FIXME
+  issue.assignees = ["wmerfalen"];
 
   if (!fullIssue) {
     changed = true;
     fullIssue = await gh.issues.create(issue);
     store.set(`${ISSUE_TO_CARD}:${card.id}`, fullIssue);
   }
-  if (!cardMeta.migration) {
+  if (!cardMeta?.migration) {
     cardMeta.migration = M_CREATED;
     store.set(`meta:card:${card.id}`, cardMeta);
   }
@@ -52,12 +52,27 @@ Etl.upsertCard = async function _upsertCard(card) {
   // XXX because it turns out we want the parent issue data at the task issue level
   card._issue = fullIssue;
 
-  if (!cardMeta.projectItemNodeId) {
-    let projectItemNodeId = await gh.projects.add(fullIssue.node_id);
-    cardMeta.issueNodeId = fullIssue.node_id;
-    cardMeta.projectItemNodeId = projectItemNodeId;
-    store.set(`meta:card:${card.id}`, cardMeta);
+  let project = await gh.projects.getByName(ProjectName);
+  if (!project) {
+    console.error(`Couldn't find project "${ProjectName}"`);
+    return;
   }
+  console.debug({ project: project.number });
+  let projectNodeId = await gh.projects.getNodeIdByNumber(project.number);
+  if (!projectNodeId) {
+    console.error(`Couldn't find project id`);
+    return;
+  }
+
+  /**
+   * Add issue to project
+   */
+  //if (!cardMeta?.projectItemNodeId) {
+  //  let projectItemNodeId = await gh.projects.add(fullIssue.node_id);
+  //  cardMeta.issueNodeId = fullIssue.node_id;
+  //  cardMeta.projectItemNodeId = projectItemNodeId;
+  //  store.set(`meta:card:${card.id}`, cardMeta);
+  //}
 
   //
   // Set Custom Fields
@@ -65,6 +80,7 @@ Etl.upsertCard = async function _upsertCard(card) {
   // TODO set multiple custom fields at once
   //
 
+  dd("dying - 1");
   // GITHUB_TRELLO_ID_FIELD
   if (!cardMeta.projectTrelloId) {
     await gh.projects.setFieldValue(
@@ -361,6 +377,8 @@ async function sleep(delay) {
 }
 
 async function main(board) {
+  let id = await gh.projects.getNodeIdByName({ name: null });
+  dd(id);
   await gh.mustInit();
 
   board = Transform.trelloBoardUpgrade(board);
@@ -390,6 +408,7 @@ async function main(board) {
     //return "Incubator on GitHub" === card.name;
     return "Decentralized TLS/HTTPS for DAPI" === card.name;
   });
+  dd(testCard);
   /*
   console.info("");
   console.info("###", testCard.checklists[0].checkItems[0].name);
