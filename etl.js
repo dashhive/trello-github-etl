@@ -14,6 +14,7 @@ let Etl = module.exports;
 let Transform = require("./lib/transform.js");
 let gh = require("./lib/gh.js");
 const dd = require("./lib/debug.js");
+let ProjectName = process.env.GITHUB_PROJECT_NAME;
 let Storage = require("./lib/store.js");
 let store = new Storage("./db.json", {
   namespace: "trello-gh-projects",
@@ -51,11 +52,9 @@ Etl.upsertCard = async function _upsertCard(card) {
   // XXX because it turns out we want the parent issue data at the task issue level
   card._issue = fullIssue;
 
-  let project = await gh.projects.getByName({
-    name: process.env.GITHUB_PROJECT_NAME,
-  });
+  let project = await gh.projects.getByName(ProjectName);
   if (!project) {
-    console.error(`Couldn't find project "${process.env.GITHUB_PROJECT_NAME}"`);
+    console.error(`Couldn't find project "${ProjectName}"`);
     return;
   }
   console.debug({ project: project.number });
@@ -81,6 +80,7 @@ Etl.upsertCard = async function _upsertCard(card) {
   // TODO set multiple custom fields at once
   //
 
+  dd("dying - 1");
   // GITHUB_TRELLO_ID_FIELD
   if (!cardMeta.projectTrelloId) {
     await gh.projects.setFieldValue(
@@ -377,6 +377,8 @@ async function sleep(delay) {
 }
 
 async function main(board) {
+  let id = await gh.projects.getNodeIdByName({ name: null });
+  dd(id);
   await gh.mustInit();
 
   board = Transform.trelloBoardUpgrade(board);
