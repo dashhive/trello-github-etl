@@ -6,7 +6,9 @@
   "scripts": {
     "lint": "npx eslint@8.x '**/*.js' --ignore-path .gitignore",
     "test": "node tests/dash-parser-re.js",
-    "get-board": "curl -sSL https://trello.com/b/FPJzDcok.json -o board.json"
+    "get-board": "curl -sSL https://trello.com/b/FPJzDcok.json -o board.json",
+    "trim-board": "echo 'Trimming board to 10 cards...' ; node utils/trim-board.js ./board.json 10 ./trimmed-board.json && mv board.json board.json.orig ; mv trimmed-board.json board.json",
+    "prettify-board": "npx prettier -w ./board.json"
   },
   "author": "AJ ONeal <aj@therootcompany.com> (https://therootcompany.com/)",
   "license": "SEE LICENSE IN LICENSE",
