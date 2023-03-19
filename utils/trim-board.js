@@ -85,6 +85,7 @@ function extractChecklists(board, cardIDList) {
       checklistSubset.push(checklist);
     }
   }
+  console.log(`-- Extracted ${checklistSubset.length} related checklist(s)`);
   return checklistSubset;
 }
 function extractActions(board, cardIDList) {
@@ -97,6 +98,7 @@ function extractActions(board, cardIDList) {
       actionSubset.push(action);
     }
   }
+  console.log(`-- Extracted ${actionSubset.length} related action(s)`);
   return actionSubset;
 }
 async function writeBoardToFile(board, trimmedFile) {
@@ -113,27 +115,24 @@ async function main() {
     usage();
     return;
   }
-  let obj = await fetchBoard();
-  if (!obj) {
+  let parsedBoard = await fetchBoard();
+  if (!parsedBoard) {
     return;
   }
-  let { maxCards, board, trimmedFile } = obj;
+  let { maxCards, board, trimmedFile } = parsedBoard;
 
   let { cardSubset, memberIDList, cardIDList } = extractCards(board, maxCards);
+
   board.cards = cardSubset;
 
   board.members = extractMembers(board, memberIDList);
 
   board.checklist = extractChecklists(board, cardIDList);
 
-  console.log(`-- Extracted ${board.checklist.length} related checklist(s)`);
-
   board.actions = extractActions(board, cardIDList);
 
-  console.log(`-- Extracted ${board.actions.length} related action(s)`);
-
   await writeBoardToFile(board, trimmedFile);
-  console.log(`-- Wrote "${trimmedFile}"`);
+
   console.log(`-- Done.`);
 }
 
