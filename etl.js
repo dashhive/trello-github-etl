@@ -20,6 +20,7 @@ let store = JsonStorage.create(localStorage, "trello-gh-projects", {
 
 let Transform = require("./lib/transform.js");
 let gh = require("./lib/gh.js");
+const dd = require("./lib/debug.js");
 
 Etl.upsertCard = async function _upsertCard(card) {
   // TODO: make optional

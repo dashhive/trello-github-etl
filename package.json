@@ -5,7 +5,8 @@
   "main": "etl.js",
   "scripts": {
     "lint": "npx eslint@8.x '**/*.js' --ignore-path .gitignore",
-    "test": "node tests/dash-parser-re.js"
+    "test": "node tests/dash-parser-re.js",
+    "get-board": "curl -sSL https://trello.com/b/FPJzDcok.json -o board.json"
   },
   "author": "AJ ONeal <aj@therootcompany.com> (https://therootcompany.com/)",
   "license": "SEE LICENSE IN LICENSE",
